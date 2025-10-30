@@ -142,7 +142,9 @@
         <li><a href="#sequences">7. Sequence Diagrams</a></li>
         <li><a href="#outputs">8. Generated Outputs</a></li>
         <li><a href="#troubleshooting">9. Troubleshooting</a></li>
-        <li><a href="#ai-enablement">10. Enabling AI-Powered Code Generation</a></li>
+                <li><a href="#ai-enablement">10. Enabling AI-Powered Code Generation</a></li>
+        <li><a href="#hexagonal">11. Hexagonal Architecture Support</a></li>
+    </ol>
     </ul>
 </div>
 
@@ -880,6 +882,404 @@ similar = kb.query_similar_activities("SQL activity with parameterized query", k
 </ol>
 <p><strong>No breaking changes</strong> - templates remain as fallback!</p>
 </div>
+
+<h1 id="hexagonal">11. Hexagonal Architecture Support</h1>
+
+<div class="feature-box">
+<p>The framework now supports <strong>two architectural patterns</strong> for generating Spring Boot services:</p>
+<ol>
+    <li><strong>Layered Architecture</strong> (Default) - Traditional controller → service → repository structure</li>
+    <li><strong>Hexagonal Architecture</strong> (New) - Ports & Adapters pattern with domain-driven design</li>
+</ol>
+</div>
+
+<h2>11.1 Architecture Comparison</h2>
+
+<table>
+    <tr>
+        <th>Aspect</th>
+        <th>Layered Architecture</th>
+        <th>Hexagonal Architecture</th>
+    </tr>
+    <tr>
+        <td><strong>Structure</strong></td>
+        <td>Controller → Service → Repository</td>
+        <td>Domain (Ports) ← Adapters</td>
+    </tr>
+    <tr>
+        <td><strong>Dependencies</strong></td>
+        <td>Top-down (Controller depends on Service)</td>
+        <td>Inward (Adapters depend on Domain)</td>
+    </tr>
+    <tr>
+        <td><strong>Domain Purity</strong></td>
+        <td>Domain mixed with framework code</td>
+        <td>Domain has ZERO framework dependencies</td>
+    </tr>
+    <tr>
+        <td><strong>Testability</strong></td>
+        <td>Requires mocking Spring components</td>
+        <td>Pure unit tests without Spring</td>
+    </tr>
+    <tr>
+        <td><strong>Technology Coupling</strong></td>
+        <td>Tight coupling to Spring</td>
+        <td>Loose coupling via interfaces</td>
+    </tr>
+    <tr>
+        <td><strong>Best For</strong></td>
+        <td>Standard CRUD services</td>
+        <td>Complex business logic, DDD</td>
+    </tr>
+    <tr>
+        <td><strong>Generated Projects</strong></td>
+        <td>Separate REST and SOAP projects</td>
+        <td>Single project with multiple adapters</td>
+    </tr>
+</table>
+
+<h2>11.2 Hexagonal Architecture Overview</h2>
+
+<div class="diagram">
+┌─────────────────────────────────────────────────────────────────┐
+│               Hexagonal Architecture (Ports & Adapters)          │
+└─────────────────────────────────────────────────────────────────┘
+
+                ┌──────────────────────┐
+                │    REST Adapter      │
+                │   (Controller)       │
+                └──────────┬───────────┘
+                           │
+                ┌──────────▼───────────┐
+                │   SOAP Adapter       │
+                │   (Endpoint)         │
+                └──────────┬───────────┘
+                           │
+     ┌─────────────────────┼─────────────────────┐
+     │                     │                     │
+     │        INPUT PORTS (Interfaces)           │
+     │     ┌───────────────▼───────────────┐     │
+     │     │   LoanApplicationUseCase      │     │
+     │     │   (Interface)                 │     │
+     │     └───────────────┬───────────────┘     │
+     │                     │                     │
+     │        ┌────────────▼────────────┐        │
+     │        │    DOMAIN LAYER         │        │
+     │        │  (Pure Business Logic)  │        │
+     │        │                         │        │
+     │        │ • LoanApplication       │        │
+     │        │ • ApplicantInfo         │        │
+     │        │ • CreditScore           │        │
+     │        │ • LoanStatus            │        │
+     │        │                         │        │
+     │        │ LoanApplicationService  │        │
+     │        │ (implements UseCase)    │        │
+     │        └────────────┬────────────┘        │
+     │                     │                     │
+     │        OUTPUT PORTS (Interfaces)          │
+     │     ┌───────────────┼───────────────┐     │
+     │     │ • LoanRepository              │     │
+     │     │ • CreditScoreGateway          │     │
+     │     │ • NotificationGateway         │     │
+     │     └───────────────┬───────────────┘     │
+     │                     │                     │
+     └─────────────────────┼─────────────────────┘
+                           │
+     ┌─────────────────────┼─────────────────────┐
+     │                     │                     │
+     │        OUTPUT ADAPTERS                    │
+     │                     │                     │
+┌────▼─────┐     ┌────────▼────────┐     ┌──────▼──────┐
+│   JPA    │     │  HTTP Gateway   │     │     JMS     │
+│ Adapter  │     │    (WebClient)  │     │   Adapter   │
+│(Database)│     │(External APIs)  │     │(Messaging)  │
+└──────────┘     └─────────────────┘     └─────────────┘
+</div>
+
+<h3>Key Principles</h3>
+
+<div class="success-box">
+<p><strong>1. Domain Independence:</strong></p>
+<ul>
+    <li>Domain models have NO Spring annotations</li>
+    <li>Pure Java POJOs representing business concepts</li>
+    <li>No framework dependencies (@Entity, @Component, etc.)</li>
+</ul>
+
+<p><strong>2. Dependency Inversion:</strong></p>
+<ul>
+    <li>Domain defines interfaces (ports)</li>
+    <li>Adapters implement those interfaces</li>
+    <li>Dependencies point INWARD toward domain</li>
+</ul>
+
+<p><strong>3. Adapter Flexibility:</strong></p>
+<ul>
+    <li>Multiple input adapters (REST, SOAP, CLI) can use same domain</li>
+    <li>Output adapters (JPA, MongoDB, external APIs) are swappable</li>
+    <li>Change technology without touching domain logic</li>
+</ul>
+</div>
+
+<h2>11.3 Usage Examples</h2>
+
+<h3>Generate Hexagonal Architecture (Combined REST + SOAP)</h3>
+<pre><code>python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output \
+  --architecture hexagonal \
+  --service-type combined
+</code></pre>
+
+<p><strong>Output:</strong></p>
+<ul>
+    <li>Single Spring Boot project with both REST and SOAP adapters</li>
+    <li>Shared domain logic</li>
+    <li>Both adapters call same use case</li>
+</ul>
+
+<h3>Generate Hexagonal Architecture (REST Only)</h3>
+<pre><code>python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output \
+  --architecture hexagonal \
+  --service-type rest
+</code></pre>
+
+<p><strong>Output:</strong></p>
+<ul>
+    <li>Only REST adapter included in project</li>
+    <li>Lighter pom.xml (no Spring-WS dependencies)</li>
+    <li>Still follows hexagonal pattern</li>
+</ul>
+
+<h3>Generate Traditional Layered Architecture (Default)</h3>
+<pre><code>python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output
+  # --architecture layered (default, can be omitted)
+</code></pre>
+
+<p><strong>Output:</strong></p>
+<ul>
+    <li>Separate REST and SOAP projects</li>
+    <li>Traditional structure (backward compatible)</li>
+</ul>
+
+<h2>11.4 Code Examples</h2>
+
+<h3>Domain Model (Pure Java)</h3>
+<pre><code>// domain/model/LoanApplication.java
+package com.example.tibco_migration.domain.model;
+
+// NO Spring annotations! Pure business entity
+public class LoanApplication {
+    private String loanID;
+    private String customerID;
+    private double loanAmount;
+    private LoanStatus status;
+    
+    // Business methods
+    public void approve(double amount) {
+        this.status = LoanStatus.APPROVED;
+        this.loanAmount = amount;
+    }
+    
+    public boolean requiresCreditCheck() {
+        return loanAmount > 10000;
+    }
+}
+</code></pre>
+
+<h3>Input Port (Use Case Interface)</h3>
+<pre><code>// domain/port/in/LoanApplicationUseCase.java
+package com.example.tibco_migration.domain.port.in;
+
+// Domain-defined interface (NO Spring!)
+public interface LoanApplicationUseCase {
+    LoanApplication applyForLoan(LoanApplication application);
+    LoanApplication getLoanStatus(String loanID);
+}
+</code></pre>
+
+<h3>Domain Service (Business Logic)</h3>
+<pre><code>// domain/service/LoanApplicationService.java
+package com.example.tibco_migration.domain.service;
+
+// Pure business logic - NO @Service annotation!
+public class LoanApplicationService implements LoanApplicationUseCase {
+    private final LoanRepository loanRepository;
+    private final CreditScoreGateway creditScoreGateway;
+    
+    public LoanApplicationService(
+        LoanRepository loanRepository,
+        CreditScoreGateway creditScoreGateway
+    ) {
+        this.loanRepository = loanRepository;
+        this.creditScoreGateway = creditScoreGateway;
+    }
+    
+    @Override
+    public LoanApplication applyForLoan(LoanApplication application) {
+        if (application.requiresCreditCheck()) {
+            CreditScore score = creditScoreGateway.checkCredit(
+                application.getCustomerID()
+            );
+            
+            if (score.getScore() > 700) {
+                application.approve(application.getLoanAmount());
+            }
+        }
+        
+        return loanRepository.save(application);
+    }
+}
+</code></pre>
+
+<h3>REST Adapter (Input)</h3>
+<pre><code>// adapter/in/rest/controller/LoanController.java
+package com.example.tibco_migration.adapter.in.rest.controller;
+
+import org.springframework.web.bind.annotation.*;
+
+@RestController  // Spring annotation in ADAPTER only
+@RequestMapping("/api/loans")
+public class LoanController {
+    private final LoanApplicationUseCase loanUseCase;  // Depends on PORT
+    
+    @PostMapping("/apply")
+    public LoanResponseDto apply(@RequestBody LoanRequestDto dto) {
+        // Convert DTO → Domain
+        LoanApplication domain = mapper.toDomain(dto);
+        
+        // Call use case (domain logic)
+        LoanApplication result = loanUseCase.applyForLoan(domain);
+        
+        // Convert Domain → DTO
+        return mapper.toDto(result);
+    }
+}
+</code></pre>
+
+<h2>11.5 Benefits</h2>
+
+<table>
+    <tr>
+        <th>Benefit</th>
+        <th>Description</th>
+        <th>Example</th>
+    </tr>
+    <tr>
+        <td><strong>Testability</strong></td>
+        <td>Test domain logic without Spring</td>
+        <td>No @SpringBootTest needed - pure JUnit</td>
+    </tr>
+    <tr>
+        <td><strong>Technology Independence</strong></td>
+        <td>Swap frameworks without changing business logic</td>
+        <td>Change from JPA to MongoDB - only adapter changes</td>
+    </tr>
+    <tr>
+        <td><strong>Domain Focus</strong></td>
+        <td>Business rules in pure Java</td>
+        <td>Domain experts can read code without framework knowledge</td>
+    </tr>
+    <tr>
+        <td><strong>Multiple Interfaces</strong></td>
+        <td>Same domain, multiple adapters</td>
+        <td>REST + SOAP + GraphQL using same business logic</td>
+    </tr>
+    <tr>
+        <td><strong>Clear Boundaries</strong></td>
+        <td>Explicit separation of concerns</td>
+        <td>Ports define contracts between layers</td>
+    </tr>
+</table>
+
+<h2>11.6 When to Use Each Architecture</h2>
+
+<h3>✅ Use Layered Architecture When:</h3>
+<div class="success-box">
+<ul>
+    <li>Simple CRUD operations</li>
+    <li>Standard REST/SOAP services</li>
+    <li>Team familiar with Spring Boot conventions</li>
+    <li>Quick prototypes</li>
+    <li>Small services with minimal business logic</li>
+</ul>
+</div>
+
+<h3>✅ Use Hexagonal Architecture When:</h3>
+<div class="feature-box">
+<ul>
+    <li>Complex business logic (DDD approach)</li>
+    <li>Need to support multiple protocols (REST + SOAP + CLI)</li>
+    <li>High testability requirements</li>
+    <li>Technology might change (database, messaging, etc.)</li>
+    <li>Long-term maintainability is critical</li>
+    <li>Domain-driven design principles</li>
+    <li>Team experienced with ports & adapters pattern</li>
+</ul>
+</div>
+
+<h2>11.7 Generated Structure (Hexagonal)</h2>
+
+<div class="diagram">
+output/hexagonal/
+│
+├── pom.xml                          # Conditional dependencies
+├── src/main/java/com/example/tibco_migration/
+│   ├── HexagonalServiceApplication.java     # @SpringBootApplication
+│   │
+│   ├── domain/                              # PURE DOMAIN
+│   │   ├── model/                           # No framework deps
+│   │   │   ├── LoanApplication.java
+│   │   │   ├── ApplicantInfo.java
+│   │   │   └── LoanStatus.java
+│   │   ├── port/
+│   │   │   ├── in/                          # INPUT PORTS
+│   │   │   │   └── LoanApplicationUseCase.java
+│   │   │   └── out/                         # OUTPUT PORTS
+│   │   │       ├── LoanRepository.java
+│   │   │       ├── CreditScoreGateway.java
+│   │   │       └── NotificationGateway.java
+│   │   └── service/
+│   │       └── LoanApplicationService.java  # Business logic
+│   │
+│   ├── adapter/                             # ADAPTERS
+│   │   ├── in/                              # INPUT ADAPTERS
+│   │   │   ├── rest/                        # REST Adapter
+│   │   │   │   ├── controller/
+│   │   │   │   ├── dto/
+│   │   │   │   └── mapper/
+│   │   │   └── soap/                        # SOAP Adapter
+│   │   │       ├── endpoint/
+│   │   │       ├── dto/
+│   │   │       └── config/
+│   │   └── out/                             # OUTPUT ADAPTERS
+│   │       ├── persistence/                 # JPA Adapter
+│   │       ├── http/                        # HTTP Gateway
+│   │       └── jms/                         # JMS Adapter
+│   └── config/
+└── src/main/resources/
+    └── application.yml
+</div>
+
+<h2>11.8 Build and Run Hexagonal Service</h2>
+
+<pre><code># Build
+cd output/hexagonal
+mvn clean package
+
+# Run
+java -jar target/hexagonal-loan-service-0.1.0.jar
+</code></pre>
+
+<p><strong>Access:</strong></p>
+<ul>
+    <li>REST API: <code>http://localhost:8080/api/loans/apply</code></li>
+    <li>SOAP WSDL: <code>http://localhost:8080/ws/loanApplication.wsdl</code> (if SOAP enabled)</li>
+</ul>
 
 <h1>Quick Reference</h1>
 

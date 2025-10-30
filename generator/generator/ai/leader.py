@@ -14,6 +14,7 @@ import os
 from .rag import ProcessKnowledgeBase
 from .process_agent import ProcessAgent
 from .service_agents import RestServiceAgent, SoapServiceAgent
+from .hexagonal_agents import HexagonalServiceAgent
 from .validation_agent import ValidationAgent
 from .packager import Packager
 
@@ -31,7 +32,7 @@ class LeaderAgent:
     - Collect generated files and produce a high-level report
     """
 
-    def __init__(self, input_base: str, output_base: str, package_root: str, parallel: bool = True, max_workers: int = 4):
+    def __init__(self, input_base: str, output_base: str, package_root: str, parallel: bool = True, max_workers: int = 4, architecture: str = 'layered', service_type: str = 'combined'):
         self.input_base = Path(input_base)
         self.output_base = Path(output_base)
         self.package_root = package_root
@@ -42,6 +43,9 @@ class LeaderAgent:
         self.process_archives: List[str] = []
         self.parallel = parallel
         self.max_workers = max_workers
+        # New: architecture pattern selection
+        self.architecture = architecture  # 'layered' or 'hexagonal'
+        self.service_type = service_type  # 'rest', 'soap', or 'combined' (for hexagonal)
 
     def discover_bw_folders(self) -> List[Path]:
         """Discover subfolders under input base that contain BW artifacts.
@@ -91,51 +95,90 @@ class LeaderAgent:
             result_files = {}
             try:
                 context = pa.analyze()
-                service_types = pa.detect_service_types(context)
-
-                if 'rest' in service_types:
-                    rest_agent = RestServiceAgent(context)
-                    result_files.update(rest_agent.generate())
-
-                if 'soap' in service_types:
-                    soap_agent = SoapServiceAgent(context)
-                    result_files.update(soap_agent.generate())
-
-                # Collect shared artifacts produced by the process agent
-                result_files.update(pa.generated_files)
-                # Create per-process archives named by the BW process
-                try:
-                    # derive process name from parsed context or folder name
-                    proc_name = None
-                    if getattr(context, 'process_defs', None):
-                        if len(context.process_defs) > 0 and isinstance(context.process_defs[0], dict):
-                            proc_name = context.process_defs[0].get('name')
-                    if not proc_name:
-                        proc_name = pa.folder.name
-
-                    # filter generated files by service area and write into zips
-                    for svc in ('rest', 'soap'):
-                        svc_files = {p: c for p, c in result_files.items() if f"{os.sep}{svc}{os.sep}" in p.replace('/', os.sep)}
-                        if not svc_files:
-                            continue
-                        zip_path = self.output_base / f"{proc_name}_{svc}.zip"
-                        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-                            for pth, content in svc_files.items():
-                                try:
-                                    p = Path(pth)
-                                    # compute archive name relative to output_base
+                
+                # Route based on architecture selection
+                if self.architecture == 'hexagonal':
+                    # Use hexagonal architecture (Ports & Adapters pattern)
+                    logger.info(f"Generating hexagonal architecture for {pa.folder.name} (service_type: {self.service_type})")
+                    hex_agent = HexagonalServiceAgent(context, self.service_type)
+                    result_files.update(hex_agent.generate())
+                    
+                    # Create per-process archive for hexagonal service
+                    # Include ALL files from hexagonal generation (not just those with 'hexagonal' in path)
+                    try:
+                        proc_name = None
+                        if getattr(context, 'process_defs', None):
+                            if len(context.process_defs) > 0 and isinstance(context.process_defs[0], dict):
+                                proc_name = context.process_defs[0].get('name')
+                        if not proc_name:
+                            proc_name = pa.folder.name
+                        
+                        # For hexagonal, include ALL generated files (pom.xml, src/, README, etc.)
+                        if result_files:
+                            zip_path = self.output_base / f"{proc_name}_hexagonal_{self.service_type}.zip"
+                            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                                for pth, content in result_files.items():
                                     try:
-                                        arcname = str(p.relative_to(self.output_base))
+                                        p = Path(pth)
+                                        try:
+                                            arcname = str(p.relative_to(self.output_base))
+                                        except Exception:
+                                            arcname = p.name
+                                        zf.writestr(arcname, content)
                                     except Exception:
-                                        arcname = p.name
-                                    # write string content as utf-8
-                                    zf.writestr(arcname, content)
-                                except Exception:
-                                    logger.exception(f"Failed to add {pth} to {zip_path}")
-                        logger.info(f"Created per-process archive: {zip_path}")
-                        self.process_archives.append(str(zip_path))
-                except Exception:
-                    logger.exception("Failed to create per-process archives")
+                                        logger.exception(f"Failed to add {pth} to {zip_path}")
+                            logger.info(f"Created hexagonal archive: {zip_path}")
+                            self.process_archives.append(str(zip_path))
+                    except Exception:
+                        logger.exception("Failed to create hexagonal archive")
+                else:
+                    # Use traditional layered architecture (default)
+                    logger.info(f"Generating layered architecture for {pa.folder.name}")
+                    service_types = pa.detect_service_types(context)
+
+                    if 'rest' in service_types:
+                        rest_agent = RestServiceAgent(context)
+                        result_files.update(rest_agent.generate())
+
+                    if 'soap' in service_types:
+                        soap_agent = SoapServiceAgent(context)
+                        result_files.update(soap_agent.generate())
+
+                    # Collect shared artifacts produced by the process agent
+                    result_files.update(pa.generated_files)
+                    # Create per-process archives named by the BW process
+                    try:
+                        # derive process name from parsed context or folder name
+                        proc_name = None
+                        if getattr(context, 'process_defs', None):
+                            if len(context.process_defs) > 0 and isinstance(context.process_defs[0], dict):
+                                proc_name = context.process_defs[0].get('name')
+                        if not proc_name:
+                            proc_name = pa.folder.name
+
+                        # filter generated files by service area and write into zips
+                        for svc in ('rest', 'soap'):
+                            svc_files = {p: c for p, c in result_files.items() if f"{os.sep}{svc}{os.sep}" in p.replace('/', os.sep)}
+                            if not svc_files:
+                                continue
+                            zip_path = self.output_base / f"{proc_name}_{svc}.zip"
+                            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                                for pth, content in svc_files.items():
+                                    try:
+                                        p = Path(pth)
+                                        # compute archive name relative to output_base
+                                        try:
+                                            arcname = str(p.relative_to(self.output_base))
+                                        except Exception:
+                                            arcname = p.name
+                                        # write string content as utf-8
+                                        zf.writestr(arcname, content)
+                                    except Exception:
+                                        logger.exception(f"Failed to add {pth} to {zip_path}")
+                            logger.info(f"Created per-process archive: {zip_path}")
+                            self.process_archives.append(str(zip_path))
+                    except Exception:
+                        logger.exception("Failed to create per-process archives")
             except Exception as e:
                 logger.error(f"Migration failed for {pa.folder}: {e}")
             return result_files
@@ -161,14 +204,24 @@ class LeaderAgent:
         packer = Packager()
         archives = []
         
-        # Package REST and SOAP service source code
-        for svc in ['rest', 'soap']:
-            svc_path = self.output_base / svc
-            if svc_path.exists() and (svc_path / 'src').exists():
-                src_zip = self.output_base / f'src_{svc}.zip'
-                packer._zip_folder(svc_path / 'src', src_zip)
+        # Package based on architecture type
+        if self.architecture == 'hexagonal':
+            # Package hexagonal architecture source code
+            hex_path = self.output_base / 'hexagonal'
+            if hex_path.exists() and (hex_path / 'src').exists():
+                src_zip = self.output_base / f'src_hexagonal_{self.service_type}.zip'
+                packer._zip_folder(hex_path / 'src', src_zip)
                 archives.append(str(src_zip))
-                logger.info(f"Created {svc.upper()} source archive: {src_zip}")
+                logger.info(f"Created hexagonal source archive: {src_zip}")
+        else:
+            # Package REST and SOAP service source code (layered)
+            for svc in ['rest', 'soap']:
+                svc_path = self.output_base / svc
+                if svc_path.exists() and (svc_path / 'src').exists():
+                    src_zip = self.output_base / f'src_{svc}.zip'
+                    packer._zip_folder(svc_path / 'src', src_zip)
+                    archives.append(str(src_zip))
+                    logger.info(f"Created {svc.upper()} source archive: {src_zip}")
 
         # include per-process archives created during processing
         archives.extend(self.process_archives)

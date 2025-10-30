@@ -4,10 +4,12 @@ An AI-powered framework that automatically migrates TIBCO BusinessWorks processe
 
 ## 🚀 Features
 
-- **Multi-Agent AI Architecture**: LeaderAgent, ProcessAgent, RestServiceAgent, SoapServiceAgent, ValidationAgent, and Packager
+- **Multi-Agent AI Architecture**: LeaderAgent, ProcessAgent, RestServiceAgent, SoapServiceAgent, HexagonalServiceAgent, ValidationAgent, and Packager
+- **Dual Architecture Support**: Choose between Layered (traditional) or Hexagonal (Ports & Adapters) patterns
 - **Automatic Code Generation**: Converts TIBCO `.process` files to complete Spring Boot projects
 - **REST Service Generation**: Controllers, DTOs, Services, JPA Entities, Repositories
 - **SOAP Service Generation**: Spring-WS endpoints, WSDL configuration, JAXB marshalling
+- **Hexagonal Architecture**: Domain-driven design with clean separation, pure domain logic, testable without Spring
 - **XSD Integration**: Parses and integrates XSD schemas with JAXB
 - **Database Support**: JPA/Hibernate with H2 (dev) and Oracle (production)
 - **JMS Integration**: Apache Artemis for messaging
@@ -36,34 +38,134 @@ pip install -r requirements.txt
 
 ### 2. Run Migration
 
+#### Option A: Layered Architecture (Default)
 ```powershell
-# Navigate to generator directory
 cd generator
-
-# Run the AI-based migration
 python -m generator.ai.run --input-dir input_artifacts --output-dir output
 ```
 
+Generates separate REST and SOAP projects with traditional layered structure.
+
+#### Option B: Hexagonal Architecture (Ports & Adapters)
+```powershell
+cd generator
+python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output \
+  --architecture hexagonal \
+  --service-type combined  # or 'rest' or 'soap'
+```
+
+Generates single project with domain-driven design and clean architecture.
+
 ### 3. Access Generated Projects
 
-The framework generates two Spring Boot projects:
+**Layered Architecture (Default):**
+- **REST Service**: `generator/output/rest/` (also `src_rest.zip`)
+- **SOAP Service**: `generator/output/soap/` (also `src_soap.zip`)
 
-- **REST Service**: `generator/output/rest/` (also packaged as `src_rest.zip`)
-- **SOAP Service**: `generator/output/soap/` (also packaged as `src_soap.zip`)
+**Hexagonal Architecture:**
+- **Unified Service**: `generator/output/hexagonal/` (also `hexagonal_combined.zip`)
+  - Contains domain layer, ports, and adapters (REST/SOAP/JPA/HTTP/JMS)
 
 ### 4. Build and Run Generated Services
 
 ```powershell
-# REST Service
+# REST Service (Layered)
 cd generator/output/rest
 mvn clean package
 java -jar target/*.jar
 
-# SOAP Service (in new terminal)
+# SOAP Service (Layered)
 cd generator/output/soap
 mvn clean package
 java -jar target/*.jar
+
+# Hexagonal Service (Unified)
+cd generator/output/hexagonal
+mvn clean package
+java -jar target/*.jar
+# Access REST at http://localhost:8080/api/loans/apply
+# Access SOAP WSDL at http://localhost:8080/ws/loanApplication.wsdl
 ```
+
+## 🏗️ Architecture Options
+
+The framework supports **two architectural patterns**:
+
+### Layered Architecture (Default)
+Traditional Spring Boot structure:
+```
+rest/                           soap/
+├── controller/                 ├── endpoint/
+├── service/                    ├── service/
+├── repository/                 ├── repository/
+├── entity/                     ├── entity/
+└── dto/                        └── dto/
+```
+
+**Best for:** Standard CRUD, quick prototypes, teams familiar with Spring Boot
+
+### Hexagonal Architecture (Ports & Adapters)
+Domain-driven design with clean architecture:
+```
+hexagonal/
+├── domain/                     # Pure business logic (NO framework deps)
+│   ├── model/                  # Business entities
+│   ├── port/
+│   │   ├── in/                 # Use case interfaces
+│   │   └── out/                # Repository interfaces
+│   └── service/                # Domain service
+└── adapter/
+    ├── in/                     # Input adapters
+    │   ├── rest/               # REST controller
+    │   └── soap/               # SOAP endpoint
+    └── out/                    # Output adapters
+        ├── persistence/        # JPA adapter
+        ├── http/               # HTTP gateway
+        └── jms/                # JMS adapter
+```
+
+**Best for:** Complex business logic, high testability, technology independence, DDD
+
+### Comparison
+
+| Feature | Layered | Hexagonal |
+|---------|---------|-----------|
+| **Structure** | Controller → Service → Repository | Domain ← Adapters |
+| **Domain Purity** | Mixed with framework | Zero framework deps |
+| **Testability** | Requires Spring mocks | Pure unit tests |
+| **Technology Coupling** | Tight | Loose (via interfaces) |
+| **Projects Generated** | Separate REST/SOAP | Single unified project |
+| **Complexity** | Lower | Higher |
+| **Flexibility** | Good | Excellent |
+
+### Usage Examples
+
+#### Generate Layered (Default)
+```bash
+python -m generator.ai.run --input-dir input_artifacts --output-dir output
+```
+
+#### Generate Hexagonal with Both REST and SOAP
+```bash
+python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output \
+  --architecture hexagonal \
+  --service-type combined
+```
+
+#### Generate Hexagonal with REST Only
+```bash
+python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output \
+  --architecture hexagonal \
+  --service-type rest
+```
+
+**See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for detailed hexagonal architecture documentation.**
 
 ## 📁 Project Structure
 
@@ -74,7 +176,8 @@ tibco_migration/
 │   │   ├── ai/                    # AI agents
 │   │   │   ├── leader.py          # Orchestrates migration
 │   │   │   ├── process_agent.py   # Handles process parsing
-│   │   │   ├── service_agents.py  # REST/SOAP generation
+│   │   │   ├── service_agents.py  # REST/SOAP generation (layered)
+│   │   │   ├── hexagonal_agents.py # Hexagonal architecture generation
 │   │   │   ├── validation_agent.py # Validates output
 │   │   │   ├── packager.py        # Creates ZIP archives
 │   │   │   ├── rag.py             # RAG knowledge base
@@ -84,10 +187,12 @@ tibco_migration/
 │   │   └── templates.py           # Code templates
 │   ├── input_artifacts/           # TIBCO process files
 │   └── output/                    # Generated projects
-│       ├── rest/                  # Spring Boot REST
-│       ├── soap/                  # Spring Boot SOAP
+│       ├── rest/                  # Spring Boot REST (layered)
+│       ├── soap/                  # Spring Boot SOAP (layered)
+│       ├── hexagonal/             # Hexagonal architecture (if selected)
 │       ├── src_rest.zip
-│       └── src_soap.zip
+│       ├── src_soap.zip
+│       └── hexagonal_*.zip
 ├── MIGRATION_GUIDE.md             # Comprehensive documentation
 ├── MIGRATION_GUIDE.html           # HTML version
 └── requirements.txt               # Python dependencies
