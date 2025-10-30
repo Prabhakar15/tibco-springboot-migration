@@ -29,6 +29,13 @@ def main():
         help='Service type for hexagonal architecture: rest, soap, or combined (default)'
     )
     
+    # API Gateway
+    parser.add_argument(
+        '--gateway',
+        action='store_true',
+        help='Generate Spring Cloud Gateway as single entry point for all services'
+    )
+    
     args = parser.parse_args()
     
     leader = LeaderAgent(
@@ -36,13 +43,16 @@ def main():
         args.output_dir, 
         args.package_root,
         architecture=args.architecture,
-        service_type=args.service_type
+        service_type=args.service_type,
+        enable_gateway=args.gateway
     )
     report = leader.execute()
     logger.info('Migration completed successfully')
     logger.info(f'Architecture: {args.architecture}')
     if args.architecture == 'hexagonal':
         logger.info(f'Service type: {args.service_type}')
+    if args.gateway:
+        logger.info('API Gateway: ENABLED')
     logger.info(f'Generated files: {len(report["generated_files"])}')
     logger.info(f'Created archives: {len(report["archives"])}')
     for arch in report['archives']:

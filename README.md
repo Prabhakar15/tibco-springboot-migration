@@ -6,6 +6,7 @@ An AI-powered framework that automatically migrates TIBCO BusinessWorks processe
 
 - **Multi-Agent AI Architecture**: LeaderAgent, ProcessAgent, RestServiceAgent, SoapServiceAgent, HexagonalServiceAgent, ValidationAgent, and Packager
 - **Dual Architecture Support**: Choose between Layered (traditional) or Hexagonal (Ports & Adapters) patterns
+- **API Gateway**: Spring Cloud Gateway for unified entry point with routing, circuit breaker, rate limiting, CORS
 - **Automatic Code Generation**: Converts TIBCO `.process` files to complete Spring Boot projects
 - **REST Service Generation**: Controllers, DTOs, Services, JPA Entities, Repositories
 - **SOAP Service Generation**: Spring-WS endpoints, WSDL configuration, JAXB marshalling
@@ -166,6 +167,74 @@ python -m generator.ai.run \
 ```
 
 **See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for detailed hexagonal architecture documentation.**
+
+## 🌐 API Gateway (Spring Cloud Gateway)
+
+Generate a **Spring Cloud Gateway** as a single entry point for all microservices:
+
+```bash
+python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output \
+  --architecture hexagonal \
+  --service-type combined \
+  --gateway
+```
+
+The gateway provides:
+- **Unified Entry Point**: Single endpoint at `http://localhost:8080`
+- **Path-Based Routing**: `/api/{service}/**` (REST), `/ws/{service}/**` (SOAP)
+- **Circuit Breaker**: Fault tolerance with Resilience4j
+- **Rate Limiting**: Prevent API abuse with Redis
+- **CORS**: Cross-origin resource sharing
+- **Load Balancing**: Distribute traffic across instances
+- **Monitoring**: Actuator endpoints for health checks
+
+### Generated Structure
+```
+output/
+├── api-gateway/              # Spring Cloud Gateway
+│   ├── pom.xml
+│   ├── README.md
+│   └── src/
+│       └── main/
+│           ├── java/
+│           │   └── gateway/
+│           │       ├── ApiGatewayApplication.java
+│           │       ├── config/
+│           │       │   ├── GatewayConfig.java
+│           │       │   ├── RouteConfig.java      # Auto-configured routes
+│           │       │   └── CorsConfig.java
+│           │       └── filter/
+│           │           └── LoggingGatewayFilterFactory.java
+│           └── resources/
+│               └── application.yml
+├── LoanApplicationProcess_hexagonal_combined.zip
+└── api-gateway.zip
+```
+
+### Gateway Routes (Auto-configured)
+
+| Service | Type | Gateway Path | Backend |
+|---------|------|--------------|---------|
+| LoanApplication | Hexagonal (REST) | `/api/loanapplication/**` | `http://localhost:8081` |
+| LoanApplication | Hexagonal (SOAP) | `/ws/loanapplication/**` | `http://localhost:8081` |
+
+### Usage Example
+```bash
+# Start backend service
+cd output/hexagonal
+mvn spring-boot:run  # Runs on port 8081
+
+# Start API Gateway (in new terminal)
+cd output/api-gateway
+mvn spring-boot:run  # Runs on port 8080
+
+# Access via gateway
+curl http://localhost:8080/api/loanapplication/loans/apply
+```
+
+**See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for complete gateway documentation.**
 
 ## 📁 Project Structure
 

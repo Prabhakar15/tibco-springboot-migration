@@ -17,8 +17,21 @@ from .service_agents import RestServiceAgent, SoapServiceAgent
 from .hexagonal_agents import HexagonalServiceAgent
 from .validation_agent import ValidationAgent
 from .packager import Packager
+from .gateway_agent import GatewayAgent
 
 logger = logging.getLogger(__name__)
+
+
+def write_files_to_disk(files: Dict[str, str]):
+    """Write generated files to disk."""
+    for file_path, content in files.items():
+        try:
+            p = Path(file_path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding='utf-8')
+            logger.debug(f"Wrote file: {file_path}")
+        except Exception as e:
+            logger.error(f"Failed to write {file_path}: {e}")
 
 
 class LeaderAgent:
@@ -32,7 +45,7 @@ class LeaderAgent:
     - Collect generated files and produce a high-level report
     """
 
-    def __init__(self, input_base: str, output_base: str, package_root: str, parallel: bool = True, max_workers: int = 4, architecture: str = 'layered', service_type: str = 'combined'):
+    def __init__(self, input_base: str, output_base: str, package_root: str, parallel: bool = True, max_workers: int = 4, architecture: str = 'layered', service_type: str = 'combined', enable_gateway: bool = False):
         self.input_base = Path(input_base)
         self.output_base = Path(output_base)
         self.package_root = package_root
@@ -46,6 +59,9 @@ class LeaderAgent:
         # New: architecture pattern selection
         self.architecture = architecture  # 'layered' or 'hexagonal'
         self.service_type = service_type  # 'rest', 'soap', or 'combined' (for hexagonal)
+        # Gateway configuration
+        self.enable_gateway = enable_gateway
+        self.generated_services: List[Dict] = []  # Track generated services for gateway routing
 
     def discover_bw_folders(self) -> List[Path]:
         """Discover subfolders under input base that contain BW artifacts.
@@ -93,8 +109,17 @@ class LeaderAgent:
         # For each process, analyze and generate services
         def _process(pa: ProcessAgent):
             result_files = {}
+            service_metadata = []
             try:
                 context = pa.analyze()
+                
+                # Get process name for tracking
+                proc_name = None
+                if getattr(context, 'process_defs', None):
+                    if len(context.process_defs) > 0 and isinstance(context.process_defs[0], dict):
+                        proc_name = context.process_defs[0].get('name')
+                if not proc_name:
+                    proc_name = pa.folder.name
                 
                 # Route based on architecture selection
                 if self.architecture == 'hexagonal':
@@ -103,16 +128,22 @@ class LeaderAgent:
                     hex_agent = HexagonalServiceAgent(context, self.service_type)
                     result_files.update(hex_agent.generate())
                     
+                    # Write files to disk
+                    write_files_to_disk(result_files)
+                    
+                    # Track service for gateway routing
+                    base_port = 8081 + len(self.generated_services)
+                    service_metadata.append({
+                        'name': proc_name,
+                        'type': 'hexagonal',
+                        'service_type': self.service_type,
+                        'port': base_port,
+                        'context_path': f'/{proc_name.lower()}'
+                    })
+                    
                     # Create per-process archive for hexagonal service
                     # Include ALL files from hexagonal generation (not just those with 'hexagonal' in path)
                     try:
-                        proc_name = None
-                        if getattr(context, 'process_defs', None):
-                            if len(context.process_defs) > 0 and isinstance(context.process_defs[0], dict):
-                                proc_name = context.process_defs[0].get('name')
-                        if not proc_name:
-                            proc_name = pa.folder.name
-                        
                         # For hexagonal, include ALL generated files (pom.xml, src/, README, etc.)
                         if result_files:
                             zip_path = self.output_base / f"{proc_name}_hexagonal_{self.service_type}.zip"
@@ -136,26 +167,33 @@ class LeaderAgent:
                     logger.info(f"Generating layered architecture for {pa.folder.name}")
                     service_types = pa.detect_service_types(context)
 
+                    base_port = 8081 + len(self.generated_services)
+                    
                     if 'rest' in service_types:
                         rest_agent = RestServiceAgent(context)
                         result_files.update(rest_agent.generate())
+                        service_metadata.append({
+                            'name': proc_name,
+                            'type': 'rest',
+                            'port': base_port,
+                            'context_path': f'/{proc_name.lower()}'
+                        })
+                        base_port += 1
 
                     if 'soap' in service_types:
                         soap_agent = SoapServiceAgent(context)
                         result_files.update(soap_agent.generate())
+                        service_metadata.append({
+                            'name': proc_name,
+                            'type': 'soap',
+                            'port': base_port,
+                            'context_path': f'/{proc_name.lower()}'
+                        })
 
                     # Collect shared artifacts produced by the process agent
                     result_files.update(pa.generated_files)
                     # Create per-process archives named by the BW process
                     try:
-                        # derive process name from parsed context or folder name
-                        proc_name = None
-                        if getattr(context, 'process_defs', None):
-                            if len(context.process_defs) > 0 and isinstance(context.process_defs[0], dict):
-                                proc_name = context.process_defs[0].get('name')
-                        if not proc_name:
-                            proc_name = pa.folder.name
-
                         # filter generated files by service area and write into zips
                         for svc in ('rest', 'soap'):
                             svc_files = {p: c for p, c in result_files.items() if f"{os.sep}{svc}{os.sep}" in p.replace('/', os.sep)}
@@ -181,19 +219,53 @@ class LeaderAgent:
                         logger.exception("Failed to create per-process archives")
             except Exception as e:
                 logger.error(f"Migration failed for {pa.folder}: {e}")
-            return result_files
+            return result_files, service_metadata
 
         if self.parallel and len(self.process_agents) > 1:
             logger.info(f"Running migration in parallel with {self.max_workers} workers")
             with ThreadPoolExecutor(max_workers=self.max_workers) as ex:
                 futures = {ex.submit(_process, pa): pa for pa in self.process_agents}
                 for fut in as_completed(futures):
-                    files = fut.result()
+                    files, services = fut.result()
                     self.generated_files.update(files)
+                    self.generated_services.extend(services)
         else:
             for pa in self.process_agents:
-                files = _process(pa)
+                files, services = _process(pa)
                 self.generated_files.update(files)
+                self.generated_services.extend(services)
+
+        # Generate API Gateway if enabled
+        if self.enable_gateway and self.generated_services:
+            logger.info(f"Generating API Gateway for {len(self.generated_services)} services")
+            try:
+                gateway_out = self.output_base / 'api-gateway'
+                gateway_out.mkdir(parents=True, exist_ok=True)
+                
+                gateway_agent = GatewayAgent(self.package_root, self.generated_services)
+                gateway_files = gateway_agent.generate(gateway_out)
+                self.generated_files.update(gateway_files)
+                
+                # Write files to disk
+                write_files_to_disk(gateway_files)
+                
+                # Create gateway archive
+                gateway_zip = self.output_base / 'api-gateway.zip'
+                with zipfile.ZipFile(gateway_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    for pth, content in gateway_files.items():
+                        try:
+                            p = Path(pth)
+                            try:
+                                arcname = str(p.relative_to(self.output_base))
+                            except Exception:
+                                arcname = p.name
+                            zf.writestr(arcname, content)
+                        except Exception:
+                            logger.exception(f"Failed to add {pth} to gateway archive")
+                logger.info(f"Created API Gateway archive: {gateway_zip}")
+                self.process_archives.append(str(gateway_zip))
+            except Exception:
+                logger.exception("Failed to generate API Gateway")
 
         # Generate leader-level report
         # Run basic validation and packaging

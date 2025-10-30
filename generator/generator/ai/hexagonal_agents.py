@@ -26,7 +26,8 @@ class HexagonalServiceAgent:
     def generate(self) -> Dict[str, str]:
         """Generate complete hexagonal architecture project."""
         files: Dict[str, str] = {}
-        out = Path(self.ctx.output_folder)
+        # Create hexagonal subfolder to avoid cluttering output root
+        out = Path(self.ctx.output_folder) / 'hexagonal'
         pkg = self.ctx.package_root + '.hexagonal'
 
         # Domain layer (core business logic - no dependencies)
