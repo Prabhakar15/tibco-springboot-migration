@@ -142,9 +142,9 @@
         <li><a href="#sequences">7. Sequence Diagrams</a></li>
         <li><a href="#outputs">8. Generated Outputs</a></li>
         <li><a href="#troubleshooting">9. Troubleshooting</a></li>
-                <li><a href="#ai-enablement">10. Enabling AI-Powered Code Generation</a></li>
+        <li><a href="#ai-enablement">10. Enabling AI-Powered Code Generation</a></li>
         <li><a href="#hexagonal">11. Hexagonal Architecture Support</a></li>
-    </ol>
+        <li><a href="#api-gateway">12. API Gateway (Spring Cloud Gateway)</a></li>
     </ul>
 </div>
 
@@ -1334,6 +1334,548 @@ java -jar target/hexagonal-loan-service-0.1.0.jar
     <tr>
         <td>H2 Console (SOAP)</td>
         <td><code>http://localhost:8081/h2-console</code></td>
+    </tr>
+</table>
+
+<h1 id="api-gateway">API Gateway (Spring Cloud Gateway)</h1>
+
+<div class="info-box">
+    <strong>Overview:</strong> Spring Cloud Gateway provides a unified entry point for all microservices with advanced routing, circuit breaking, rate limiting, and monitoring capabilities.
+</div>
+
+<h2>Features</h2>
+
+<table>
+    <tr>
+        <th>Feature</th>
+        <th>Description</th>
+        <th>Configuration</th>
+    </tr>
+    <tr>
+        <td><strong>Path-based Routing</strong></td>
+        <td>Routes requests based on URL patterns</td>
+        <td><code>/api/**</code> (REST), <code>/ws/**</code> (SOAP)</td>
+    </tr>
+    <tr>
+        <td><strong>Circuit Breaker</strong></td>
+        <td>Fault tolerance with Resilience4j</td>
+        <td>50% failure threshold, 10s wait</td>
+    </tr>
+    <tr>
+        <td><strong>Rate Limiting</strong></td>
+        <td>Prevent API abuse (Redis-based)</td>
+        <td>IP or user-based key resolvers</td>
+    </tr>
+    <tr>
+        <td><strong>CORS</strong></td>
+        <td>Cross-origin resource sharing</td>
+        <td>Configurable origins, methods, headers</td>
+    </tr>
+    <tr>
+        <td><strong>Retry Mechanism</strong></td>
+        <td>Automatic request retry</td>
+        <td>3 attempts per failed request</td>
+    </tr>
+    <tr>
+        <td><strong>Load Balancing</strong></td>
+        <td>Distribute traffic across instances</td>
+        <td>Built-in with service discovery</td>
+    </tr>
+    <tr>
+        <td><strong>Monitoring</strong></td>
+        <td>Actuator endpoints</td>
+        <td>Health, routes, metrics, prometheus</td>
+    </tr>
+</table>
+
+<h2>Architecture Diagram</h2>
+
+<pre style="background: #f8f9fa; border: 2px solid #3498db;">
+┌──────────────────────────────────────────────────────────────┐
+│                   External Clients                            │
+│      (Web Apps, Mobile Apps, Third-party Systems)             │
+└──────────────┬───────────────────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────────────────┐
+│          API Gateway (Spring Cloud Gateway)                   │
+│                   Port: 8080                                  │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ • Path-based routing (/api/**, /ws/**)                │  │
+│  │ • Circuit breaker (Resilience4j)                      │  │
+│  │ • Rate limiting (Redis)                               │  │
+│  │ • CORS configuration                                  │  │
+│  │ • Request/response filtering                          │  │
+│  │ • Monitoring (Actuator)                               │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────┬─────────────┬─────────────┬────────────────────────┘
+           │             │             │
+           ▼             ▼             ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────────────────┐
+│ REST Service │ │ SOAP Service │ │ Hexagonal Service        │
+│ (Layered)    │ │ (Layered)    │ │ (Ports & Adapters)       │
+│ Port: 8081   │ │ Port: 8082   │ │ Port: 8083               │
+└──────────────┘ └──────────────┘ └──────────────────────────┘
+</pre>
+
+<h2>Generated Components</h2>
+
+<h3>1. Gateway Application</h3>
+
+<pre><code class="language-java">@SpringBootApplication
+public class ApiGatewayApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ApiGatewayApplication.class, args);
+    }
+}</code></pre>
+
+<h3>2. Route Configuration</h3>
+
+<div class="success-box">
+    <strong>Auto-configured Routes:</strong> Gateway automatically configures routes for all generated services based on their type and architecture.
+</div>
+
+<pre><code class="language-java">@Configuration
+public class RouteConfig {
+    @Bean
+    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
+        return builder.routes()
+            // REST service route
+            .route("loan_rest_route", r -> r
+                .path("/api/loanapplication/**")
+                .filters(f -> f
+                    .stripPrefix(1)
+                    .addRequestHeader("X-Gateway-Route", "loan_rest")
+                    .circuitBreaker(c -> c
+                        .setName("loan_cb")
+                        .setFallbackUri("forward:/fallback/loan"))
+                    .retry(config -> config.setRetries(3)))
+                .uri("http://localhost:8081"))
+            
+            // SOAP service route
+            .route("loan_soap_route", r -> r
+                .path("/ws/loanapplication/**")
+                .filters(f -> f
+                    .stripPrefix(1)
+                    .circuitBreaker(c -> c
+                        .setName("loan_soap_cb")))
+                .uri("http://localhost:8081"))
+            .build();
+    }
+}</code></pre>
+
+<h3>3. CORS Configuration</h3>
+
+<pre><code class="language-java">@Configuration
+public class CorsConfig {
+    @Bean
+    public CorsWebFilter corsWebFilter() {
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowedOriginPatterns(List.of("*"));
+        corsConfig.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        ));
+        corsConfig.setAllowedHeaders(Arrays.asList(
+            "Authorization", "Content-Type", "X-User-Id"
+        ));
+        corsConfig.setAllowCredentials(true);
+        corsConfig.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = 
+            new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", corsConfig);
+        return new CorsWebFilter(source);
+    }
+}</code></pre>
+
+<h3>4. Gateway Configuration</h3>
+
+<pre><code class="language-yaml">spring:
+  application:
+    name: api-gateway
+  
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+      
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 30s
+
+server:
+  port: 8080
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s</code></pre>
+
+<h2>Usage</h2>
+
+<h3>Generate Gateway</h3>
+
+<div class="code-block">
+<pre><code class="language-bash"># With layered architecture
+python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output \
+  --gateway
+
+# With hexagonal architecture
+python -m generator.ai.run \
+  --input-dir input_artifacts \
+  --output-dir output \
+  --architecture hexagonal \
+  --service-type combined \
+  --gateway</code></pre>
+</div>
+
+<h3>Run Gateway and Services</h3>
+
+<div class="warning-box">
+    <strong>Important:</strong> Start backend services before starting the gateway.
+</div>
+
+<table>
+    <tr>
+        <th>Step</th>
+        <th>Command</th>
+        <th>Port</th>
+    </tr>
+    <tr>
+        <td>1. Start Backend Service</td>
+        <td><code>cd output/hexagonal && mvn spring-boot:run</code></td>
+        <td>8081</td>
+    </tr>
+    <tr>
+        <td>2. Start API Gateway</td>
+        <td><code>cd output/api-gateway && mvn spring-boot:run</code></td>
+        <td>8080</td>
+    </tr>
+    <tr>
+        <td>3. Access via Gateway</td>
+        <td><code>curl http://localhost:8080/api/loan/apply</code></td>
+        <td>8080</td>
+    </tr>
+</table>
+
+<h2>Route Patterns</h2>
+
+<table>
+    <tr>
+        <th>Service Type</th>
+        <th>Pattern</th>
+        <th>Example</th>
+        <th>Backend</th>
+    </tr>
+    <tr>
+        <td>REST (Layered)</td>
+        <td><code>/api/{service}/**</code></td>
+        <td><code>/api/loanapplication/**</code></td>
+        <td>http://localhost:8081</td>
+    </tr>
+    <tr>
+        <td>SOAP (Layered)</td>
+        <td><code>/ws/{service}/**</code></td>
+        <td><code>/ws/loanapplication/**</code></td>
+        <td>http://localhost:8082</td>
+    </tr>
+    <tr>
+        <td>Hexagonal (REST)</td>
+        <td><code>/api/{service}/**</code></td>
+        <td><code>/api/loanprocess/**</code></td>
+        <td>http://localhost:8083</td>
+    </tr>
+    <tr>
+        <td>Hexagonal (SOAP)</td>
+        <td><code>/ws/{service}/**</code></td>
+        <td><code>/ws/loanprocess/**</code></td>
+        <td>http://localhost:8083</td>
+    </tr>
+    <tr>
+        <td>Hexagonal (Combined)</td>
+        <td>Both patterns</td>
+        <td>Both REST & SOAP</td>
+        <td>http://localhost:8083</td>
+    </tr>
+</table>
+
+<h2>Monitoring Endpoints</h2>
+
+<table>
+    <tr>
+        <th>Endpoint</th>
+        <th>Description</th>
+        <th>Example</th>
+    </tr>
+    <tr>
+        <td><code>/actuator/health</code></td>
+        <td>Gateway health status</td>
+        <td><code>curl http://localhost:8080/actuator/health</code></td>
+    </tr>
+    <tr>
+        <td><code>/actuator/gateway/routes</code></td>
+        <td>List all configured routes</td>
+        <td>Shows all route definitions</td>
+    </tr>
+    <tr>
+        <td><code>/actuator/metrics</code></td>
+        <td>Gateway metrics</td>
+        <td>Response times, error rates</td>
+    </tr>
+    <tr>
+        <td><code>/actuator/gateway/routes/{id}</code></td>
+        <td>Specific route details</td>
+        <td>Route configuration by ID</td>
+    </tr>
+    <tr>
+        <td><code>/actuator/gateway/refresh</code></td>
+        <td>Refresh routes</td>
+        <td>Reload route configuration</td>
+    </tr>
+</table>
+
+<h2>Circuit Breaker Details</h2>
+
+<div class="info-box">
+    <strong>Configuration:</strong> Each route is protected with a circuit breaker for fault tolerance.
+</div>
+
+<table>
+    <tr>
+        <th>Parameter</th>
+        <th>Value</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>Sliding Window Size</td>
+        <td>10 calls</td>
+        <td>Number of calls to track</td>
+    </tr>
+    <tr>
+        <td>Failure Rate Threshold</td>
+        <td>50%</td>
+        <td>Percentage to open circuit</td>
+    </tr>
+    <tr>
+        <td>Wait Duration</td>
+        <td>10 seconds</td>
+        <td>Time in open state</td>
+    </tr>
+    <tr>
+        <td>Half-Open Calls</td>
+        <td>3 calls</td>
+        <td>Test calls in half-open state</td>
+    </tr>
+</table>
+
+<h2>Rate Limiting</h2>
+
+<div class="warning-box">
+    <strong>Requires Redis:</strong> Rate limiting needs a running Redis instance.
+</div>
+
+<h3>IP-based Rate Limiting</h3>
+
+<pre><code class="language-java">@Bean
+public KeyResolver ipKeyResolver() {
+    return exchange -> Mono.just(
+        exchange.getRequest()
+            .getRemoteAddress()
+            .getAddress()
+            .getHostAddress()
+    );
+}</code></pre>
+
+<h3>User-based Rate Limiting</h3>
+
+<pre><code class="language-java">@Bean
+public KeyResolver userKeyResolver() {
+    return exchange -> Mono.justOrEmpty(
+        exchange.getRequest()
+            .getHeaders()
+            .getFirst("X-User-Id")
+    ).defaultIfEmpty("anonymous");
+}</code></pre>
+
+<h3>Configuration Example</h3>
+
+<pre><code class="language-yaml">spring:
+  cloud:
+    gateway:
+      routes:
+        - id: loan_service
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10  # req/sec
+                redis-rate-limiter.burstCapacity: 20  # max burst
+                key-resolver: "#{@ipKeyResolver}"</code></pre>
+
+<h2>Production Considerations</h2>
+
+<div class="success-box">
+    <strong>Best Practices:</strong> Follow these recommendations for production deployments.
+</div>
+
+<h3>1. CORS Security</h3>
+
+<pre><code class="language-java">// Restrict to specific domains
+corsConfig.setAllowedOrigins(Arrays.asList(
+    "https://app.example.com",
+    "https://admin.example.com"
+));</code></pre>
+
+<h3>2. SSL/TLS</h3>
+
+<pre><code class="language-yaml">server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.p12
+    key-store-password: ${KEYSTORE_PASSWORD}
+    key-store-type: PKCS12</code></pre>
+
+<h3>3. Service Discovery</h3>
+
+<pre><code class="language-yaml">spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true</code></pre>
+
+<h3>4. Authentication</h3>
+
+<pre><code class="language-java">.filters(f -> f
+    .filter(authenticationFilter)
+    .stripPrefix(1))</code></pre>
+
+<h2>Troubleshooting</h2>
+
+<table>
+    <tr>
+        <th>Issue</th>
+        <th>Solution</th>
+    </tr>
+    <tr>
+        <td><strong>Route Not Found (404)</strong></td>
+        <td>
+            • Check routes: <code>curl http://localhost:8080/actuator/gateway/routes</code><br>
+            • Verify backend service is running<br>
+            • Review gateway logs
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Circuit Breaker Open</strong></td>
+        <td>
+            • Check backend service health<br>
+            • View metrics: <code>/actuator/metrics/resilience4j.circuitbreaker.state</code><br>
+            • Adjust threshold in application.yml
+        </td>
+    </tr>
+    <tr>
+        <td><strong>CORS Errors</strong></td>
+        <td>
+            • Verify CorsConfig allows required origins<br>
+            • Check browser console for specific errors<br>
+            • Test preflight: <code>curl -X OPTIONS -H "Origin: http://localhost:3000" -v</code>
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Rate Limiting Issues</strong></td>
+        <td>
+            • Verify Redis is running: <code>redis-cli ping</code><br>
+            • Check Redis connection in gateway logs<br>
+            • Adjust limits in application.yml
+        </td>
+    </tr>
+</table>
+
+<h2>Dependencies</h2>
+
+<pre><code class="language-xml">&lt;dependencies&gt;
+    &lt;!-- Spring Cloud Gateway --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-gateway&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    
+    &lt;!-- Actuator --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-actuator&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    
+    &lt;!-- Circuit Breaker --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-circuitbreaker-reactor-resilience4j&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    
+    &lt;!-- Redis (Rate Limiting) --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-data-redis-reactive&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;</code></pre>
+
+<h2>Architecture Decision Record</h2>
+
+<div class="info-box">
+    <strong>Decision:</strong> Use Spring Cloud Gateway for API Gateway
+</div>
+
+<table>
+    <tr>
+        <th>Aspect</th>
+        <th>Details</th>
+    </tr>
+    <tr>
+        <td><strong>Context</strong></td>
+        <td>Need unified entry point for multiple microservices with advanced routing capabilities</td>
+    </tr>
+    <tr>
+        <td><strong>Alternatives</strong></td>
+        <td>
+            • Netflix Zuul (deprecated)<br>
+            • Kong Gateway (separate infrastructure)<br>
+            • NGINX (limited Spring integration)
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Rationale</strong></td>
+        <td>
+            ✓ Native Spring integration<br>
+            ✓ Reactive (WebFlux) for non-blocking I/O<br>
+            ✓ Rich feature set (circuit breaker, rate limiting)<br>
+            ✓ Easy Java-based configuration<br>
+            ✓ Built-in Actuator integration<br>
+            ✓ Active development by Spring team
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Consequences</strong></td>
+        <td>
+            ✅ Unified routing and cross-cutting concerns<br>
+            ✅ Better performance with reactive model<br>
+            ✅ Easy to extend with custom filters<br>
+            ⚠️ Requires Redis for rate limiting (optional)<br>
+            ⚠️ Learning curve for WebFlux
+        </td>
     </tr>
 </table>
 
