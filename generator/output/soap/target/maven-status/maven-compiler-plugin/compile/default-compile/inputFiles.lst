@@ -1,0 +1,14 @@
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\src\main\java\com\example\tibco_migration\controller\LoanApplicationController.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\src\main\java\com\example\tibco_migration\dto\CreditScoreRequest.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\src\main\java\com\example\tibco_migration\dto\CreditScoreResponse.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\src\main\java\com\example\tibco_migration\dto\LoanApplicationRequest.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\src\main\java\com\example\tibco_migration\dto\LoanApplicationResponse.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\src\main\java\com\example\tibco_migration\entity\LoanEntity.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\src\main\java\com\example\tibco_migration\repository\LoanRepository.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\src\main\java\com\example\tibco_migration\service\LoanApplicationService.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\target\generated-sources\xjc\com\example\tibco_migration\dto\jaxb\CreditScoreRequest.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\target\generated-sources\xjc\com\example\tibco_migration\dto\jaxb\CreditScoreResponse.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\target\generated-sources\xjc\com\example\tibco_migration\dto\jaxb\LoanApplicationRequest.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\target\generated-sources\xjc\com\example\tibco_migration\dto\jaxb\LoanApplicationResponse.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\target\generated-sources\xjc\com\example\tibco_migration\dto\jaxb\ObjectFactory.java
+C:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration\generator\output\soap\target\generated-sources\xjc\com\example\tibco_migration\dto\jaxb\package-info.java

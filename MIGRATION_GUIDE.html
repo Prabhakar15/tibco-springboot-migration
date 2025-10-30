@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIBCO to Spring Boot Migration Guide</title>
+    <style>
+        @page {
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            page-break-before: always;
+        }
+        h1:first-of-type {
+            page-break-before: avoid;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #555;
+            margin-top: 20px;
+        }
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-left: 3px solid #3498db;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .diagram {
+            background: #f9f9f9;
+            border: 2px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .feature-box {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .toc {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc li {
+            padding: 5px 0;
+        }
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        @media print {
+            body {
+                background: white;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1>TIBCO BusinessWorks to Spring Boot Migration Guide</h1>
+
+<div class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+        <li><a href="#overview">1. Overview</a></li>
+        <li><a href="#architecture">2. Architecture</a></li>
+        <li><a href="#components">3. Component Details</a></li>
+        <li><a href="#setup">4. Setup Instructions</a></li>
+        <li><a href="#usage">5. Usage Examples</a></li>
+        <li><a href="#flows">6. Flow Diagrams</a></li>
+        <li><a href="#sequences">7. Sequence Diagrams</a></li>
+        <li><a href="#outputs">8. Generated Outputs</a></li>
+        <li><a href="#troubleshooting">9. Troubleshooting</a></li>
+    </ul>
+</div>
+
+<h1 id="overview">1. Overview</h1>
+
+<div class="feature-box">
+    <h3>Project Summary</h3>
+    <p>This project provides an <strong>automated migration framework</strong> to convert TIBCO BusinessWorks (BW) process definitions into modern Spring Boot microservices (REST and SOAP).</p>
+</div>
+
+<h2>Key Features</h2>
+<ul>
+    <li>✅ Multi-agent AI architecture for intelligent code generation</li>
+    <li>✅ Parallel processing support for multiple BW processes</li>
+    <li>✅ Generates both REST and SOAP Spring Boot services</li>
+    <li>✅ Complete Spring Boot project structure with Maven configuration</li>
+    <li>✅ JAXB/XSD integration for type safety</li>
+    <li>✅ JPA/Hibernate for database operations</li>
+    <li>✅ JMS messaging support</li>
+    <li>✅ Automated packaging and archiving</li>
+</ul>
+
+<h2>Technology Stack</h2>
+
+<table>
+    <tr>
+        <th>Category</th>
+        <th>Technology</th>
+        <th>Version</th>
+    </tr>
+    <tr>
+        <td>Input Format</td>
+        <td>TIBCO BusinessWorks</td>
+        <td>.process, .xsd, .bwp files</td>
+    </tr>
+    <tr>
+        <td>Framework</td>
+        <td>Spring Boot</td>
+        <td>3.2.0</td>
+    </tr>
+    <tr>
+        <td>Language</td>
+        <td>Java</td>
+        <td>17</td>
+    </tr>
+    <tr>
+        <td>REST</td>
+        <td>Spring Web</td>
+        <td>Included in Spring Boot</td>
+    </tr>
+    <tr>
+        <td>SOAP</td>
+        <td>Spring Web Services</td>
+        <td>Included in Spring Boot</td>
+    </tr>
+    <tr>
+        <td>Database</td>
+        <td>Spring Data JPA</td>
+        <td>H2 / Oracle</td>
+    </tr>
+    <tr>
+        <td>Messaging</td>
+        <td>Spring JMS</td>
+        <td>Apache Artemis</td>
+    </tr>
+    <tr>
+        <td>XML Binding</td>
+        <td>JAXB</td>
+        <td>Jakarta XML Binding</td>
+    </tr>
+</table>
+
+<h1 id="architecture">2. Architecture</h1>
+
+<h2>High-Level System Architecture</h2>
+
+<div class="diagram">
+┌─────────────────────────────────────────────────────────────────┐
+│                    TIBCO BW Migration System                     │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+        ┌──────────────────────────────────────────┐
+        │         LeaderAgent (Orchestrator)        │
+        │  • Discovers BW process folders          │
+        │  • Builds shared knowledge base (RAG)    │
+        │  • Creates ProcessAgents                 │
+        │  • Manages parallel execution            │
+        │  • Generates reports & archives          │
+        └──────────────────────────────────────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+                ▼                             ▼
+    ┌─────────────────────┐       ┌─────────────────────┐
+    │   ProcessAgent      │       │   ProcessAgent      │
+    │   (Process 1)       │       │   (Process 2)       │
+    │                     │       │                     │
+    │ • Parse .process    │       │ • Parse .process    │
+    │ • Extract XSDs      │       │ • Extract XSDs      │
+    │ • Detect service    │       │ • Detect service    │
+    │   types             │       │   types             │
+    │ • Coordinate agents │       │ • Coordinate agents │
+    └─────────────────────┘       └─────────────────────┘
+                │                             │
+        ┌───────┴───────┐             ┌───────┴───────┐
+        ▼               ▼             ▼               ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│RestService   │ │SoapService   │ │RestService   │ │SoapService   │
+│Agent         │ │Agent         │ │Agent         │ │Agent         │
+│              │ │              │ │              │ │              │
+│• REST API    │ │• SOAP/WSDL   │ │• REST API    │ │• SOAP/WSDL   │
+│• Controller  │ │• Endpoint    │ │• Controller  │ │• Endpoint    │
+│• DTOs        │ │• JAXB DTOs   │ │• DTOs        │ │• JAXB DTOs   │
+│• Service     │ │• Config      │ │• Service     │ │• Config      │
+└──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+</div>
+
+<h1 id="components">3. Component Details</h1>
+
+<h2>3.1 LeaderAgent</h2>
+<div class="feature-box">
+    <p><strong>Purpose:</strong> Orchestrates the entire migration process</p>
+    <p><strong>Location:</strong> <code>generator/ai/leader.py</code></p>
+</div>
+
+<h3>Key Responsibilities</h3>
+<ul>
+    <li>Scan input directory for BW process folders</li>
+    <li>Build shared RAG (Retrieval-Augmented Generation) knowledge base</li>
+    <li>Create and manage ProcessAgents for each BW folder</li>
+    <li>Execute parallel or sequential processing</li>
+    <li>Generate migration reports and ZIP archives</li>
+</ul>
+
+<h3>Configuration Example</h3>
+<pre><code>leader = LeaderAgent(
+    input_base='input_artifacts',      # BW process folder
+    output_base='output',               # Generated code output
+    package_root='com.example.tibco',  # Java package
+    parallel=True,                      # Enable parallel processing
+    max_workers=4                       # Thread pool size
+)</code></pre>
+
+<h2>3.2 ProcessAgent</h2>
+<div class="feature-box">
+    <p><strong>Purpose:</strong> Analyzes individual BW process and coordinates service generation</p>
+    <p><strong>Location:</strong> <code>generator/ai/process_agent.py</code></p>
+</div>
+
+<h3>Key Responsibilities</h3>
+<ol>
+    <li>Parse <code>.process</code> files using process_parser</li>
+    <li>Extract activities (JDBC, JMS, HTTP, SOAP)</li>
+    <li>Identify XSD schemas</li>
+    <li>Determine service type (REST vs SOAP)</li>
+    <li>Generate shared artifacts (Entities, Repositories, Services, DTOs)</li>
+</ol>
+
+<h2>3.3 RestServiceAgent</h2>
+<div class="feature-box">
+    <p><strong>Purpose:</strong> Generates Spring Boot REST API implementation</p>
+</div>
+
+<h3>Generated Files</h3>
+<ul>
+    <li><code>pom.xml</code> - Maven with Spring Web dependencies</li>
+    <li><code>*Controller.java</code> - @RestController with endpoints</li>
+    <li><code>*Service.java</code> - @Service with business logic</li>
+    <li><code>*Repository.java</code> - JpaRepository interface</li>
+    <li><code>*Entity.java</code> - JPA Entity classes</li>
+    <li><code>*Request.java / *Response.java</code> - DTOs</li>
+    <li><code>application.yml</code> - Spring Boot configuration</li>
+</ul>
+
+<h2>3.4 SoapServiceAgent</h2>
+<div class="feature-box">
+    <p><strong>Purpose:</strong> Generates Spring Boot SOAP Web Service (Spring-WS)</p>
+</div>
+
+<h3>Generated Files</h3>
+<ul>
+    <li><code>SoapServiceApplication.java</code> - @SpringBootApplication</li>
+    <li><code>WebServiceConfig.java</code> - WSDL/XSD configuration</li>
+    <li><code>*Endpoint.java</code> - @Endpoint with @PayloadRoot</li>
+    <li>JAXB-annotated DTOs with @XmlRootElement</li>
+    <li><code>pom.xml</code> - Maven with Spring-WS dependencies</li>
+    <li>Unified XSD schema files</li>
+</ul>
+
+<h1 id="setup">4. Setup Instructions</h1>
+
+<h2>4.1 Prerequisites</h2>
+
+<div class="warning-box">
+    <h3>Required Software</h3>
+    <ul>
+        <li>Python 3.8 or higher</li>
+        <li>Java 17 or higher (JDK)</li>
+        <li>Maven 3.6+ (optional, for building generated projects)</li>
+    </ul>
+</div>
+
+<h2>4.2 Installation Steps</h2>
+
+<h3>Step 1: Navigate to Project Directory</h3>
+<pre><code>cd c:\IBM\DBS-TIBCO-SPRINGBOOT\PY29OCT\tibco_migration</code></pre>
+
+<h3>Step 2: Set Up Python Virtual Environment</h3>
+<pre><code># Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment (Windows PowerShell)
+.venv\Scripts\activate
+
+# Install dependencies (if requirements.txt exists)
+pip install -r requirements.txt</code></pre>
+
+<h3>Step 3: Verify Directory Structure</h3>
+<pre><code>tibco_migration/
+├── generator/
+│   ├── generator/
+│   │   ├── ai/
+│   │   │   ├── leader.py
+│   │   │   ├── process_agent.py
+│   │   │   ├── service_agents.py
+│   │   │   └── run.py
+│   │   └── process_parser.py
+│   ├── input_artifacts/
+│   └── output/
+└── MIGRATION_GUIDE.md</code></pre>
+
+<h1 id="usage">5. Usage Examples</h1>
+
+<h2>5.1 Basic Migration</h2>
+
+<h3>Input Structure</h3>
+<pre><code>input_artifacts/
+└── LoanApp/
+    ├── LoanApplication.process
+    ├── loan_request.xsd
+    └── loan_response.xsd</code></pre>
+
+<h3>Run Migration</h3>
+<pre><code>cd generator
+python -m generator.ai.run --input-dir input_artifacts --output-dir output</code></pre>
+
+<h3>Expected Output</h3>
+<pre><code>output/
+├── rest/                    # Spring Boot REST project
+├── soap/                    # Spring Boot SOAP project
+├── src_rest.zip            # REST source archive
+├── src_soap.zip            # SOAP source archive
+└── ai_migration_report.json</code></pre>
+
+<h2>5.2 Testing REST Service</h2>
+
+<h3>Build and Run</h3>
+<pre><code>cd output\rest
+mvn clean package
+mvn spring-boot:run</code></pre>
+
+<h3>Sample REST Request</h3>
+<pre><code>curl -X POST http://localhost:8080/loan/apply \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerID": "CUST001",
+    "loanAmount": 50000,
+    "loanType": "Personal",
+    "loanTermMonths": 36,
+    "applicantName": "John Doe",
+    "contactEmail": "john.doe@example.com"
+  }'</code></pre>
+
+<h3>Expected Response</h3>
+<pre><code>{
+  "loanID": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "APPROVED",
+  "message": "Loan application approved",
+  "approvedAmount": 50000
+}</code></pre>
+
+<h2>5.3 Testing SOAP Service</h2>
+
+<h3>Build and Run</h3>
+<pre><code>cd output\soap
+mvn clean package
+mvn spring-boot:run</code></pre>
+
+<h3>Access WSDL</h3>
+<pre><code>http://localhost:8081/ws/loanApplication.wsdl</code></pre>
+
+<h3>Sample SOAP Request</h3>
+<pre><code>&lt;soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:loan="http://example.com/tibco_migration/loan"&gt;
+   &lt;soapenv:Header/&gt;
+   &lt;soapenv:Body&gt;
+      &lt;loan:LoanApplicationRequest&gt;
+         &lt;loan:customerID&gt;CUST001&lt;/loan:customerID&gt;
+         &lt;loan:loanAmount&gt;50000&lt;/loan:loanAmount&gt;
+         &lt;loan:loanType&gt;Personal&lt;/loan:loanType&gt;
+         &lt;loan:loanTermMonths&gt;36&lt;/loan:loanTermMonths&gt;
+         &lt;loan:applicantName&gt;John Doe&lt;/loan:applicantName&gt;
+         &lt;loan:contactEmail&gt;john.doe@example.com&lt;/loan:contactEmail&gt;
+      &lt;/loan:LoanApplicationRequest&gt;
+   &lt;/soapenv:Body&gt;
+&lt;/soapenv:Envelope&gt;</code></pre>
+
+<h1 id="flows">6. Flow Diagrams</h1>
+
+<h2>6.1 Overall Migration Flow</h2>
+
+<div class="diagram">
+START
+  │
+  ├─► [1] Scan Input Directory
+  │     │
+  │     ├─► Find folders with .process, .xsd, .bwp files
+  │     │
+  │     └─► Result: List of BW process folders
+  │
+  ├─► [2] Build Knowledge Base (RAG)
+  │     │
+  │     ├─► Parse all .process files
+  │     │
+  │     ├─► Index activities (SQL, JMS, HTTP, etc.)
+  │     │
+  │     └─► Create searchable index for pattern matching
+  │
+  ├─► [3] Create Process Agents
+  │     │
+  │     └─► One ProcessAgent per BW folder
+  │
+  ├─► [4] Execute Processing (Parallel/Sequential)
+  │     │
+  │     ├─► For each ProcessAgent:
+  │     │     │
+  │     │     ├─► Parse .process file
+  │     │     │
+  │     │     ├─► Extract activities & schemas
+  │     │     │
+  │     │     ├─► Detect service type (REST/SOAP)
+  │     │     │
+  │     │     ├─► Generate REST project
+  │     │     │
+  │     │     └─► Generate SOAP project
+  │     │
+  │     └─► Collect all generated files
+  │
+  ├─► [5] Validate Projects
+  │     │
+  │     ├─► Check Maven availability
+  │     │
+  │     └─► Run mvn compile (optional)
+  │
+  ├─► [6] Package Output
+  │     │
+  │     ├─► Create src_rest.zip
+  │     │
+  │     └─► Create src_soap.zip
+  │
+  └─► [7] Generate Migration Report
+        │
+        └─► ai_migration_report.json
+
+END
+</div>
+
+<h2>6.2 Process Agent Decision Flow</h2>
+
+<div class="diagram">
+Process Folder Received
+        │
+        ▼
+   Parse .process File
+        │
+        ├─► Extract Activities
+        │     ├─► JDBC operations
+        │     ├─► JMS send/receive
+        │     ├─► HTTP invocations
+        │     └─► SOAP calls
+        │
+        ├─► Extract Schemas (.xsd files)
+        │
+        └─► Analyze Service Type
+              │
+              ├─► Contains HTTP activities? ──► REST Service
+              │
+              ├─► Contains SOAP activities? ──► SOAP Service
+              │
+              └─► Default ──────────────────► Both REST & SOAP
+                    │
+                    ├─► Generate REST Project
+                    │     └─► RestServiceAgent.generate()
+                    │
+                    └─► Generate SOAP Project
+                          └─► SoapServiceAgent.generate()
+</div>
+
+<h1 id="sequences">7. Sequence Diagrams</h1>
+
+<h2>7.1 REST Service Request Flow</h2>
+
+<div class="diagram">
+Client → Controller → Service → Repository → Database
+   │         │          │           │           │
+   │ POST    │          │           │           │
+   ├────────►│          │           │           │
+   │         │ apply()  │           │           │
+   │         ├─────────►│           │           │
+   │         │          │ save()    │           │
+   │         │          ├──────────►│           │
+   │         │          │           │ INSERT    │
+   │         │          │           ├──────────►│
+   │         │          │           │◄──────────┤
+   │         │          │◄──────────┤           │
+   │         │          │           │           │
+   │         │          │ creditCheck()         │
+   │         │          ├────────►  │           │
+   │         │          │◄───────┘  │           │
+   │         │          │           │           │
+   │         │◄─────────┤           │           │
+   │◄────────┤ response │           │           │
+   │ 200 OK  │          │           │           │
+</div>
+
+<h1 id="outputs">8. Generated Outputs</h1>
+
+<h2>8.1 REST Service Structure</h2>
+
+<div class="success-box">
+<pre><code>output/rest/
+├── pom.xml
+├── src/main/java/com/example/tibco_migration/
+│   ├── controller/
+│   │   └── LoanApplicationController.java
+│   ├── service/
+│   │   └── LoanApplicationService.java
+│   ├── repository/
+│   │   └── LoanRepository.java
+│   ├── entity/
+│   │   └── LoanEntity.java
+│   └── dto/
+│       ├── LoanApplicationRequest.java
+│       └── LoanApplicationResponse.java
+└── src/main/resources/
+    ├── application.yml
+    └── xsd/
+        ├── loan_request.xsd
+        └── loan_response.xsd</code></pre>
+</div>
+
+<h2>8.2 SOAP Service Structure</h2>
+
+<div class="success-box">
+<pre><code>output/soap/
+├── pom.xml
+├── src/main/java/com/example/tibco_migration/
+│   ├── SoapServiceApplication.java
+│   ├── config/
+│   │   ├── WebServiceConfig.java
+│   │   └── WebClientConfig.java
+│   ├── endpoint/
+│   │   └── LoanApplicationEndpoint.java
+│   ├── service/
+│   │   └── LoanApplicationService.java
+│   ├── repository/
+│   │   └── LoanRepository.java
+│   ├── entity/
+│   │   └── LoanEntity.java
+│   └── dto/
+│       ├── LoanApplicationRequest.java (JAXB)
+│       └── LoanApplicationResponse.java (JAXB)
+└── src/main/resources/
+    ├── application.yml
+    └── xsd/
+        └── loan_request.xsd</code></pre>
+</div>
+
+<h1 id="troubleshooting">9. Troubleshooting</h1>
+
+<h2>Common Issues and Solutions</h2>
+
+<table>
+    <tr>
+        <th>Issue</th>
+        <th>Symptom</th>
+        <th>Solution</th>
+    </tr>
+    <tr>
+        <td>AI Libraries Not Available</td>
+        <td>Warning: "No module named 'numpy'"</td>
+        <td>Normal operation. System uses fallback mode. Optional: <code>pip install numpy scikit-learn</code></td>
+    </tr>
+    <tr>
+        <td>Maven Not Found</td>
+        <td>"Maven executable not found"</td>
+        <td>Install Maven or skip validation: <code>choco install maven</code></td>
+    </tr>
+    <tr>
+        <td>Port Already in Use</td>
+        <td>"Port 8080 is already in use"</td>
+        <td>Change port in <code>application.yml</code>: <code>server.port: 8090</code></td>
+    </tr>
+    <tr>
+        <td>JAXB Classes Not Generated</td>
+        <td>"Cannot find generated JAXB classes"</td>
+        <td>Run: <code>mvn clean compile</code></td>
+    </tr>
+    <tr>
+        <td>WSDL Not Accessible</td>
+        <td>"404 Not Found for WSDL"</td>
+        <td>Verify XSD exists in <code>src/main/resources/xsd/</code></td>
+    </tr>
+</table>
+
+<h2>Debug Mode</h2>
+
+<div class="warning-box">
+<p>Enable detailed logging in <code>application.yml</code>:</p>
+<pre><code>logging:
+  level:
+    org.springframework.ws: DEBUG
+    com.example.tibco_migration: DEBUG
+    org.springframework.jms: DEBUG
+    org.springframework.data.jpa: DEBUG</code></pre>
+</div>
+
+<h1>Quick Reference</h1>
+
+<h2>Command Summary</h2>
+
+<table>
+    <tr>
+        <th>Action</th>
+        <th>Command</th>
+    </tr>
+    <tr>
+        <td>Run Migration</td>
+        <td><code>python -m generator.ai.run --input-dir input_artifacts --output-dir output</code></td>
+    </tr>
+    <tr>
+        <td>Build REST Service</td>
+        <td><code>cd output/rest && mvn clean package</code></td>
+    </tr>
+    <tr>
+        <td>Build SOAP Service</td>
+        <td><code>cd output/soap && mvn clean package</code></td>
+    </tr>
+    <tr>
+        <td>Run REST Service</td>
+        <td><code>mvn spring-boot:run</code> (in rest folder)</td>
+    </tr>
+    <tr>
+        <td>Run SOAP Service</td>
+        <td><code>mvn spring-boot:run</code> (in soap folder)</td>
+    </tr>
+</table>
+
+<h2>Service URLs</h2>
+
+<table>
+    <tr>
+        <th>Service</th>
+        <th>URL</th>
+    </tr>
+    <tr>
+        <td>REST API</td>
+        <td><code>http://localhost:8080</code></td>
+    </tr>
+    <tr>
+        <td>SOAP WSDL</td>
+        <td><code>http://localhost:8081/ws/loanApplication.wsdl</code></td>
+    </tr>
+    <tr>
+        <td>H2 Console (REST)</td>
+        <td><code>http://localhost:8080/h2-console</code></td>
+    </tr>
+    <tr>
+        <td>H2 Console (SOAP)</td>
+        <td><code>http://localhost:8081/h2-console</code></td>
+    </tr>
+</table>
+
+<footer style="margin-top: 50px; padding-top: 20px; border-top: 2px solid #ddd; text-align: center; color: #666;">
+    <p><strong>Document Version:</strong> 1.0</p>
+    <p><strong>Last Updated:</strong> October 30, 2025</p>
+    <p><strong>Project:</strong> TIBCO BusinessWorks to Spring Boot Migration Framework</p>
+</footer>
+
+</body>
+</html>

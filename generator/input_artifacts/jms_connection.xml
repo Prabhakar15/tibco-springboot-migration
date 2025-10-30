@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jms:jmsConnection xmlns:jms="http://ns.tibco.com/bw/sharedresource/jms"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://ns.tibco.com/bw/sharedresource/jms ../../Schemas/com.tibco.bw.sharedresource.jms.xsd"
+                   name="LoanAppJMSConnection">
+<configurationType>JNDI</configurationType>
+<jndiContextFactory>com.sun.jndi.fscontext.RefFSContextFactory</jndiContextFactory>
+<jndiContextURL>file:///C:/tibco/bw6/jndi_bindings</jndiContextURL>
+<connectionFactory>LoanAppQueueConnectionFactory</connectionFactory>
+<userName>jms_user</userName>
+<!-- Password should be managed via Module Properties for production -->
+<password>jms_password</password>
+<timeout>10</timeout>
+<maxConnections>10</maxConnections>
+<initialConnections>1</initialConnections>
+</jms:jmsConnection>

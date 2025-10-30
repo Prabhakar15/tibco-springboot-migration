@@ -1,0 +1,51 @@
+package com.example.tibco_migration.dto;
+
+import jakarta.xml.bind.annotation.*;
+import java.math.BigDecimal;
+
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlType(name = "", propOrder = {
+    "loanID",
+    "status",
+    "message",
+    "rejectionReason",
+    "approvedAmount"
+})
+@XmlRootElement(name = "LoanApplicationResponse", namespace = "http://example.com/tibco_migration/loan")
+public class LoanApplicationResponse {
+    
+    @XmlElement(namespace = "http://example.com/tibco_migration/loan", required = true)
+    private String loanID;
+    
+    @XmlElement(namespace = "http://example.com/tibco_migration/loan", required = true)
+    private String status;
+    
+    @XmlElement(namespace = "http://example.com/tibco_migration/loan", required = true)
+    private String message;
+    
+    @XmlElement(namespace = "http://example.com/tibco_migration/loan")
+    private String rejectionReason;
+    
+    @XmlElement(namespace = "http://example.com/tibco_migration/loan")
+    private BigDecimal approvedAmount;
+
+    public String getLoanID() { return loanID; }
+
+    public String getStatus() { return status; }
+
+    public String getMessage() { return message; }
+
+    public String getRejectionReason() { return rejectionReason; }
+
+    public BigDecimal getApprovedAmount() { return approvedAmount; }
+
+    public void setLoanID(String loanID) { this.loanID = loanID; }
+
+    public void setStatus(String status) { this.status = status; }
+
+    public void setMessage(String message) { this.message = message; }
+
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public void setApprovedAmount(BigDecimal approvedAmount) { this.approvedAmount = approvedAmount; }
+}

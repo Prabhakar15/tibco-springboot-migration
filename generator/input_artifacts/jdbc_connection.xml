@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jdbc:jdbcConnection xmlns:jdbc="http://ns.tibco.com/bw/sharedresource/jdbc"
+                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                     xsi:schemaLocation="http://ns.tibco.com/bw/sharedresource/jdbc ../../Schemas/com.tibco.bw.sharedresource.jdbc.xsd"
+                     name="LoanAppDBConnection">
+<jdbcDriver>oracle.jdbc.driver.OracleDriver</jdbcDriver>
+<databaseUrl>jdbc:oracle:thin:@localhost:1521:XE</databaseUrl>
+<userName>your_db_user</userName>
+<!-- Password should be managed via Module Properties for production -->
+<password>your_db_password</password>
+<loginTimeout>10</loginTimeout>
+<maxConnections>10</maxConnections>
+<initialConnections>1</initialConnections>
+<connectionTimeOut>30</connectionTimeOut>
+<testInterval>300</testInterval>
+<testQuery>SELECT 1 FROM DUAL</testQuery>
+<connectionType>Client</connectionType>
+<enableSchemaMetadata>true</enableSchemaMetadata>
+</jdbc:jdbcConnection>

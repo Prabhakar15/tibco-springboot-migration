@@ -1,0 +1,6 @@
+com\example\tibco_migration\dto\jaxb\CreditScoreRequest.class
+com\example\tibco_migration\dto\jaxb\CreditScoreResponse.class
+com\example\tibco_migration\dto\jaxb\LoanApplicationResponse.class
+com\example\tibco_migration\dto\jaxb\LoanApplicationRequest.class
+com\example\tibco_migration\dto\jaxb\package-info.class
+com\example\tibco_migration\dto\jaxb\ObjectFactory.class

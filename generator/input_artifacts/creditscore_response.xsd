@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.example.org/creditscore/response"
+           xmlns:tns="http://www.example.org/creditscore/response"
+           elementFormDefault="qualified">
+ 
+    <xs:element name="CreditScoreResponse">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="customerID" type="xs:string"/>
+<xs:element name="score" type="xs:int"/>
+<xs:element name="riskLevel" type="xs:string"/> <!-- e.g., "LOW", "MEDIUM", "HIGH" -->
+<xs:element name="status" type="xs:string"/> <!-- e.g., "SUCCESS", "FAILURE" -->
+<xs:element name="errorMessage" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+ 
+</xs:schema>

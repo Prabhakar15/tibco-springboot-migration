@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<process:process xmlns:process="http://ns.tibco.com/bw/process"
+                 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                 xmlns:ns="http://www.example.org/loanapp/request"
+                 name="LoanApplicationProcess"
+                 suppressOutput="false"
+                 faultTolerant="false"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="http://ns.tibco.com/bw/process http://ns.tibco.com/bw/process.xsd">
+ 
+    <!-- ===== STARTER ===== -->
+    <process:starter ref="HTTPReceiver_ReceiveLoanApplication" name="ReceiveLoanRequest">
+        <input>
+            <element ref="ns:LoanApplicationRequest"/>
+        </input>
+    </process:starter>
+ 
+    <!-- ===== ACTIVITIES ===== -->
+ 
+    <!-- Step 1: Invoke Credit Score Service -->
+    <process:activity name="CallCreditScoreService" type="bw.activity.rest.Invoke">
+        <config>
+            <endpoint>http://creditscore.example.org/api/check</endpoint>
+            <method>POST</method>
+        </config>
+        <input>
+            <element ref="ns:CreditScoreRequest"/>
+        </input>
+        <output>
+            <element ref="ns:CreditScoreResponse"/>
+        </output>
+    </process:activity>
+ 
+    <!-- Step 2: Decision logic -->
+    <process:activity name="EvaluateScore" type="bw.activity.general.Decision">
+        <config>
+            <expression><![CDATA[
+                /CreditScoreResponse/score > 650
+            ]]></expression>
+        </config>
+    </process:activity>
+ 
+    <!-- Step 3a: If Approved -->
+    <process:activity name="InsertLoanRecord" type="bw.activity.jdbc.Insert">
+        <config>
+            <connection ref="SharedResources/LoanAppDBConnection.jdbcConnection"/>
+            <sql><![CDATA[
+                INSERT INTO LOAN_TABLE (CUSTOMER_ID, AMOUNT, STATUS) VALUES (?, ?, ?)
+            ]]></sql>
+        </config>
+    </process:activity>
+ 
+    <!-- Step 3b: Send JMS Message -->
+    <process:activity name="SendLoanStatus" type="bw.activity.jms.Send">
+        <config>
+            <connection ref="SharedResources/LoanAppJMSConnection.jmsConnection"/>
+            <destination>LoanStatusQueue</destination>
+        </config>
+        <input>
+            <message>Loan Approved</message>
+        </input>
+    </process:activity>
+ 
+    <!-- ===== TERMINATOR ===== -->
+    <process:terminator ref="HTTPReply_SendResponse" name="SendHTTPResponse">
+        <output>
+            <element ref="ns:LoanApplicationResponse"/>
+        </output>
+    </process:terminator>
+ 
+    <!-- ===== TRANSITIONS ===== -->
+    <process:transition from="ReceiveLoanRequest" to="CallCreditScoreService"/>
+    <process:transition from="CallCreditScoreService" to="EvaluateScore"/>
+    <process:transition from="EvaluateScore" to="InsertLoanRecord" condition="true"/>
+    <process:transition from="InsertLoanRecord" to="SendLoanStatus"/>
+    <process:transition from="SendLoanStatus" to="SendHTTPResponse"/>
+    <process:transition from="EvaluateScore" to="SendHTTPResponse" condition="false"/>
+ 
+</process:process>
