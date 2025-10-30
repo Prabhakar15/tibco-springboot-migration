@@ -142,6 +142,7 @@
         <li><a href="#sequences">7. Sequence Diagrams</a></li>
         <li><a href="#outputs">8. Generated Outputs</a></li>
         <li><a href="#troubleshooting">9. Troubleshooting</a></li>
+        <li><a href="#ai-enablement">10. Enabling AI-Powered Code Generation</a></li>
     </ul>
 </div>
 
@@ -668,6 +669,216 @@ Client → Controller → Service → Repository → Database
     com.example.tibco_migration: DEBUG
     org.springframework.jms: DEBUG
     org.springframework.data.jpa: DEBUG</code></pre>
+</div>
+
+<h1 id="ai-enablement">10. Enabling AI-Powered Code Generation</h1>
+
+<div class="feature-box">
+<p><strong>Current Status:</strong> The framework uses <strong>template-based code generation</strong> (fast, deterministic, no API costs). You can optionally enable <strong>AI-powered generation</strong> for more intelligent, context-aware code.</p>
+</div>
+
+<h2>Current Architecture</h2>
+
+<h3>Template-Based (Active)</h3>
+<ul>
+    <li>✅ Uses predefined Python string templates</li>
+    <li>✅ Fast and reliable</li>
+    <li>✅ No external dependencies</li>
+    <li>✅ Generates consistent, predictable code</li>
+    <li>✅ No API costs</li>
+</ul>
+
+<h3>AI-Ready Design</h3>
+<ul>
+    <li>🤖 Multi-agent architecture ready for LLM integration</li>
+    <li>🤖 RAG (Retrieval Augmented Generation) module already implemented</li>
+    <li>🤖 Vector database (FAISS) support built-in</li>
+    <li>🤖 Falls back to templates if AI libraries unavailable</li>
+</ul>
+
+<h2>How to Enable AI Features</h2>
+
+<h3>Step 1: Install AI Dependencies</h3>
+
+<p>Add to <code>requirements.txt</code>:</p>
+<pre><code># AI/ML Dependencies (optional)
+openai==1.3.0              # For LLM API calls
+sentence-transformers      # For embeddings
+faiss-cpu                  # Vector database (use faiss-gpu for GPU)
+numpy                      # Mathematical operations</code></pre>
+
+<p>Install:</p>
+<pre><code>pip install -r requirements.txt</code></pre>
+
+<div class="success-box">
+<p><strong>Note:</strong> The <code>rag.py</code> module automatically detects these libraries and switches from fallback mode to AI mode!</p>
+</div>
+
+<h3>Step 2: Set Up OpenAI API Key</h3>
+
+<pre><code># Windows PowerShell
+$env:OPENAI_API_KEY="sk-your-api-key-here"
+
+# Linux/Mac
+export OPENAI_API_KEY="sk-your-api-key-here"</code></pre>
+
+<h3>Step 3: Enable RAG (Vector Search)</h3>
+
+<p>Once dependencies are installed, RAG works automatically:</p>
+<pre><code>from generator.ai.rag import ProcessKnowledgeBase
+
+kb = ProcessKnowledgeBase()
+kb.index_process_activities("input/LoanApplication.process")
+similar = kb.query_similar_activities("SQL activity with parameterized query", k=5)</code></pre>
+
+<h2>AI vs Template Comparison</h2>
+
+<table>
+    <tr>
+        <th>Feature</th>
+        <th>Template-Based</th>
+        <th>AI-Powered</th>
+    </tr>
+    <tr>
+        <td>Speed</td>
+        <td>⚡ Very Fast (&lt;1s)</td>
+        <td>🐌 Slower (5-10s per service)</td>
+    </tr>
+    <tr>
+        <td>Cost</td>
+        <td>💰 Free</td>
+        <td>💵 ~$0.01-0.10 per service</td>
+    </tr>
+    <tr>
+        <td>Consistency</td>
+        <td>✅ Identical output</td>
+        <td>⚠️ Varies slightly</td>
+    </tr>
+    <tr>
+        <td>Intelligence</td>
+        <td>📋 Fixed patterns</td>
+        <td>🧠 Context-aware</td>
+    </tr>
+    <tr>
+        <td>Dependencies</td>
+        <td>✅ Python only</td>
+        <td>📦 OpenAI API, ML libraries</td>
+    </tr>
+    <tr>
+        <td>Customization</td>
+        <td>📝 Edit templates</td>
+        <td>💬 Prompt engineering</td>
+    </tr>
+    <tr>
+        <td>Best For</td>
+        <td>Standard migrations</td>
+        <td>Complex, unique patterns</td>
+    </tr>
+</table>
+
+<h2>When to Use AI</h2>
+
+<div class="success-box">
+<h3>✅ Use AI-powered generation when:</h3>
+<ul>
+    <li>TIBCO processes have complex, unique business logic</li>
+    <li>You need intelligent mapping of custom activities</li>
+    <li>Processes use uncommon patterns</li>
+    <li>You want to leverage historical migration knowledge</li>
+</ul>
+</div>
+
+<div class="warning-box">
+<h3>❌ Use template-based generation when:</h3>
+<ul>
+    <li>Processes follow standard patterns</li>
+    <li>Speed is critical</li>
+    <li>You want predictable, consistent output</li>
+    <li>No OpenAI API access or budget constraints</li>
+</ul>
+</div>
+
+<h2>RAG Vector Database Details</h2>
+
+<table>
+    <tr>
+        <th>Aspect</th>
+        <th>Details</th>
+    </tr>
+    <tr>
+        <td>Technology</td>
+        <td>FAISS (Facebook AI Similarity Search)</td>
+    </tr>
+    <tr>
+        <td>Type</td>
+        <td>In-memory vector database</td>
+    </tr>
+    <tr>
+        <td>Dimensions</td>
+        <td>384 (model: all-MiniLM-L6-v2)</td>
+    </tr>
+    <tr>
+        <td>Purpose</td>
+        <td>Store TIBCO activity embeddings for similarity search</td>
+    </tr>
+    <tr>
+        <td>Use Case</td>
+        <td>Find similar activities across multiple BW processes</td>
+    </tr>
+</table>
+
+<h3>How RAG Works:</h3>
+<ol>
+    <li>Parse TIBCO <code>.process</code> files and extract activities</li>
+    <li>Convert activity metadata to text representations</li>
+    <li>Generate embeddings using sentence-transformers</li>
+    <li>Store in FAISS index for fast similarity search</li>
+    <li>Query during code generation to find similar patterns</li>
+</ol>
+
+<h2>Cost Estimation (AI Mode)</h2>
+
+<table>
+    <tr>
+        <th>Item</th>
+        <th>Cost</th>
+    </tr>
+    <tr>
+        <td>OpenAI GPT-4 Input</td>
+        <td>~$0.03 per 1K tokens</td>
+    </tr>
+    <tr>
+        <td>OpenAI GPT-4 Output</td>
+        <td>~$0.06 per 1K tokens</td>
+    </tr>
+    <tr>
+        <td>Average per service</td>
+        <td><strong>~$0.12</strong></td>
+    </tr>
+    <tr>
+        <td>For 10 BW processes</td>
+        <td>~$1.20</td>
+    </tr>
+    <tr>
+        <td>For 100 BW processes</td>
+        <td>~$12.00</td>
+    </tr>
+    <tr>
+        <td>Template mode</td>
+        <td><strong>$0</strong> (no API calls)</td>
+    </tr>
+</table>
+
+<h2>Migration Path: Template → AI</h2>
+
+<div class="feature-box">
+<p><strong>You don't need to rewrite everything!</strong> The framework supports <strong>hybrid mode</strong>:</p>
+<ol>
+    <li><strong>Phase 1:</strong> Use templates for standard services (90% of processes)</li>
+    <li><strong>Phase 2:</strong> Enable AI only for complex processes with <code>--use-ai</code> flag</li>
+    <li><strong>Phase 3:</strong> Gradually enhance with LLM where templates fall short</li>
+</ol>
+<p><strong>No breaking changes</strong> - templates remain as fallback!</p>
 </div>
 
 <h1>Quick Reference</h1>

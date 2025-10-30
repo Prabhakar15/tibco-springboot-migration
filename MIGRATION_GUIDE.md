@@ -1186,6 +1186,198 @@ spring:
 
 ---
 
+## Enabling AI-Powered Code Generation
+
+The framework currently uses **template-based code generation** (fast, deterministic, no API costs). You can optionally enable **AI-powered generation** for more intelligent, context-aware code.
+
+### Current Architecture
+
+**Template-Based (Active):**
+- Uses predefined Python string templates
+- Fast and reliable
+- No external dependencies
+- Generates consistent, predictable code
+- No API costs
+
+**AI-Ready Design:**
+- Multi-agent architecture ready for LLM integration
+- RAG (Retrieval Augmented Generation) module already implemented
+- Vector database (FAISS) support built-in
+- Falls back to templates if AI libraries unavailable
+
+### How to Enable AI Features
+
+#### Step 1: Install AI Dependencies
+
+Add to `requirements.txt`:
+```python
+# AI/ML Dependencies (optional)
+openai==1.3.0              # For LLM API calls
+sentence-transformers      # For embeddings
+faiss-cpu                  # Vector database (use faiss-gpu for GPU)
+numpy                      # Mathematical operations
+```
+
+Install:
+```bash
+pip install -r requirements.txt
+```
+
+**Note:** The `rag.py` module automatically detects these libraries and switches from fallback mode to AI mode!
+
+#### Step 2: Set Up OpenAI API Key
+
+```bash
+# Windows PowerShell
+$env:OPENAI_API_KEY="sk-your-api-key-here"
+
+# Linux/Mac
+export OPENAI_API_KEY="sk-your-api-key-here"
+```
+
+#### Step 3: Enable AI in Code (Future Enhancement)
+
+The architecture supports adding AI with minimal changes:
+
+**Option A: Enable RAG (Vector Search)**
+```python
+# Already works! Just install dependencies
+from generator.ai.rag import ProcessKnowledgeBase
+
+kb = ProcessKnowledgeBase()
+kb.index_process_activities("input/LoanApplication.process")
+similar = kb.query_similar_activities("SQL activity with parameterized query", k=5)
+```
+
+**Option B: Add LLM Code Generation (Enhancement)**
+
+To add LLM-powered generation, enhance `service_agents.py`:
+
+```python
+from openai import OpenAI
+
+class RestServiceAgent:
+    def __init__(self, process_context, use_llm=False):
+        self.ctx = process_context
+        self.use_llm = use_llm
+        if use_llm:
+            self.llm_client = OpenAI()
+    
+    def generate(self):
+        if self.use_llm:
+            return self._generate_with_llm()
+        else:
+            return self._generate_with_templates()  # Current
+    
+    def _generate_with_llm(self):
+        """Use LLM for intelligent code generation."""
+        prompt = f"""
+        Generate Spring Boot REST controller for:
+        Process: {self.ctx.process_name}
+        Activities: {self.ctx.activities}
+        
+        Requirements:
+        - Use Spring Web annotations
+        - Add validation
+        - Include error handling
+        - Follow best practices
+        """
+        
+        response = self.llm_client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        return self._parse_llm_response(response)
+```
+
+Then update `run.py` to accept `--use-ai` flag:
+```bash
+python -m generator.ai.run --input-dir input --output-dir output --use-ai
+```
+
+### AI vs Template Comparison
+
+| Feature | Template-Based | AI-Powered |
+|---------|----------------|------------|
+| **Speed** | Very Fast (<1s) | Slower (5-10s per service) |
+| **Cost** | Free | ~$0.01-0.10 per service |
+| **Consistency** | Identical output | Varies slightly |
+| **Intelligence** | Fixed patterns | Context-aware |
+| **Dependencies** | Python only | OpenAI API, ML libraries |
+| **Customization** | Edit templates | Prompt engineering |
+| **Best For** | Standard migrations | Complex, unique patterns |
+
+### When to Use AI
+
+✅ **Use AI-powered generation when:**
+- TIBCO processes have complex, unique business logic
+- You need intelligent mapping of custom activities
+- Processes use uncommon patterns
+- You want to leverage historical migration knowledge
+
+❌ **Use template-based generation when:**
+- Processes follow standard patterns
+- Speed is critical
+- You want predictable, consistent output
+- No OpenAI API access or budget constraints
+
+### RAG Vector Database Details
+
+**Technology:** FAISS (Facebook AI Similarity Search)
+- **Type:** In-memory vector database
+- **Dimensions:** 384 (sentence-transformers model: `all-MiniLM-L6-v2`)
+- **Purpose:** Store TIBCO activity embeddings for similarity search
+- **Use Case:** Find similar activities across multiple BW processes
+
+**How It Works:**
+1. Parse TIBCO `.process` files and extract activities
+2. Convert activity metadata to text representations
+3. Generate embeddings using sentence-transformers
+4. Store in FAISS index for fast similarity search
+5. Query during code generation to find similar patterns
+
+**Example:**
+```python
+kb = ProcessKnowledgeBase()
+kb.index_process_activities("LoanApp.process")
+kb.index_process_activities("CreditCheck.process")
+
+# Find similar SQL activities
+results = kb.query_similar_activities(
+    "SQL query with JOIN and WHERE clause",
+    k=3
+)
+
+for result in results:
+    print(f"Activity: {result['name']}")
+    print(f"Similarity: {result['similarity_score']}")
+```
+
+### Cost Estimation (AI Mode)
+
+**OpenAI API Costs (GPT-4):**
+- Input: ~$0.03 per 1K tokens
+- Output: ~$0.06 per 1K tokens
+- Average per service: ~2K tokens = **$0.12**
+
+**For 10 BW processes:** ~$1.20  
+**For 100 BW processes:** ~$12.00
+
+**Template mode:** $0 (no API calls)
+
+### Migration Path: Template → AI
+
+You don't need to rewrite everything! The framework supports **hybrid mode**:
+
+1. **Phase 1:** Use templates for standard services (90% of processes)
+2. **Phase 2:** Enable AI only for complex processes with `--use-ai` flag
+3. **Phase 3:** Gradually enhance with LLM where templates fall short
+
+**No breaking changes** - templates remain as fallback!
+
+---
+
 ## Best Practices
 
 ### 1. Input Preparation

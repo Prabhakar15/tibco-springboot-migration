@@ -150,6 +150,44 @@ See `requirements.txt` for required packages.
 - REST: `generator/output/rest/src/main/resources/application.yml`
 - SOAP: `generator/output/soap/src/main/resources/application.yml`
 
+### 🤖 AI-Powered Generation (Optional)
+
+The framework currently uses **template-based code generation** (fast, no API costs). You can optionally enable **AI-powered generation**:
+
+#### Enable AI Features:
+
+```powershell
+# 1. Install AI dependencies
+pip install openai sentence-transformers faiss-cpu numpy
+
+# 2. Set OpenAI API key
+$env:OPENAI_API_KEY="sk-your-api-key-here"
+
+# 3. RAG vector database now works automatically!
+```
+
+**What changes:**
+- ✅ RAG module (`rag.py`) switches from fallback to AI mode automatically
+- ✅ Vector database (FAISS) indexes TIBCO activities for similarity search
+- ✅ No code changes needed - just install dependencies!
+
+**AI vs Template:**
+
+| Mode | Speed | Cost | Intelligence |
+|------|-------|------|--------------|
+| Template (default) | Very Fast | $0 | Fixed patterns |
+| AI-powered | Slower | ~$0.12/service | Context-aware |
+
+**When to use AI:**
+- Complex TIBCO processes with unique patterns
+- Need intelligent activity mapping
+- Want to leverage historical migration knowledge
+
+See **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** section "Enabling AI-Powered Code Generation" for full details.
+
+## 📦 Technology Stack
+- SOAP: `generator/output/soap/src/main/resources/application.yml`
+
 ## 📦 Technology Stack
 
 ### Framework
